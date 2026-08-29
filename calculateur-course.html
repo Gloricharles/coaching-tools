@@ -97,6 +97,7 @@
       fatigue" estimée selon ton profil. Un profil hybride bien entraîné encaisse mieux la fatigue des stations
       qu'un profil très polarisé (que ce soit vers la course ou vers la force).</p>
     <button class="go" id="calcBtn">Calculer mes allures</button>
+    <p class="hint" id="dateError" style="display:none;color:var(--accent);font-weight:600;">Ajoute une date à chaque performance renseignée : sans ça, impossible de savoir laquelle est la plus récente pour la moyenne.</p>
   </div>
 
   <div id="out" class="hidden">
@@ -111,13 +112,13 @@
       <div class="diag hidden" id="diag"></div>
     </div>
 
-    <h2>Équivalences estimées par distance</h2>
+    <h2>Équivalences théoriques par distance</h2>
     <div class="card">
       <table>
         <thead><tr><th>Distance</th><th class="num">Temps</th><th class="num">Allure</th></tr></thead>
         <tbody id="equiv"></tbody>
       </table>
-      <p class="hint">Performances équivalentes estimées à ton niveau actuel. Estimation, pas une garantie.</p>
+      <p class="hint">Équivalences théoriques, basées sur ta seule capacité aérobie/vitesse. Elles ne garantissent pas le chrono réel sur une distance non entraînée spécifiquement - le marathon en particulier dépend aussi de l'endurance spécifique, du ravitaillement et du mental, pas seulement du moteur aérobie.</p>
       <p class="hint" style="margin-top:10px;padding-top:10px;border-top:1px solid var(--line);">
         <b style="color:var(--txt)">Fiabilité :</b> bonne de 3 km au marathon (formule vérifiée contre des références réelles publiées, écart sous 0,1%) ;
         approximative sur 1 km (en dessous de la plage officiellement étudiée, écart mesuré autour de 4%).
@@ -145,10 +146,21 @@ var FRAC = {easyFast:0.72, easySlow:0.63, jog:0.58, hard:0.88, fast:1.08, race:0
 // au double+ selon le niveau de conditionnement hybride, pas seulement selon la vitesse de course).
 // Ce n'est pas une conversion scientifique exacte : encoder un vrai temps Hyrox reste le seul moyen
 // d'avoir TA valeur reelle.
+// Fourchettes de taxe de fatigue par profil auto-declare, utilisees uniquement si aucun Hyrox
+// n'est mesure. Deux sources externes distinctes appuient ces bornes (aucune des deux ne mesure
+// exactement "allure moyenne vs allure seuil individuelle" - c'est toujours une adaptation, pas
+// une conversion scientifique directe) :
+// - Roxmetric (roxmetric.com/tools/race-predictor, 80840 resultats, 1980 paires route/Hyrox) :
+//   l'allure Hyrox reelle devie de -65 a +41 sec/km par rapport a l'allure predite depuis l'allure
+//   route, 80% du temps. C'est une mesure de variance globale (population), plus large que la
+//   variance residuelle attendue ici puisque l'allure seuil individuelle absorbe deja une partie
+//   de la variabilite que Roxmetric doit capturer via l'allure route seule.
+// - Rox-Coach (rox-coach.com/pace-calculator) confirme independamment le decoupage en 3 profils
+//   (Hybrid / Runner / CrossFitter), la meme logique que hybrid/runner/force ci-dessous.
 var TAX_BY_PROFILE = {
-  hybrid: {low:8,  high:20},
-  runner: {low:20, high:40},
-  force:  {low:25, high:45}
+  hybrid: {low:5,  high:30},
+  runner: {low:15, high:45},
+  force:  {low:20, high:55}
 };
 var DISTS = [
   {m:1000,label:"1 km"},{m:1500,label:"1,5 km"},{m:3000,label:"3 km"},
@@ -222,7 +234,7 @@ document.getElementById("calcBtn").onclick=function(){
   var hxPace=parseTime(document.getElementById("hxPace").value); // s/km mesuré
   var hxDate=document.getElementById("hxDate").value;
 
-  var out=document.getElementById("out"), no=document.getElementById("noData");
+  var out=document.getElementById("out"), no=document.getElementById("noData"), dateErr=document.getElementById("dateError");
   var hyroxOnly=false;
   if(perfs.length===0){
     if(hxPace){
@@ -232,18 +244,41 @@ document.getElementById("calcBtn").onclick=function(){
       hyroxOnly=true;
       perfs.push({d:8000, t:hxPace*8, date: hxDate?new Date(hxDate):null});
     } else {
-      out.classList.add("hidden"); no.classList.remove("hidden"); return;
+      out.classList.add("hidden"); no.classList.remove("hidden"); dateErr.style.display="none"; return;
     }
   }
   no.classList.add("hidden");
 
-  var dated=perfs.filter(function(p){return p.date;});
-  if(dated.length){
-    var newest=dated.reduce(function(a,b){return b.date>a.date?b:a;}).date;
-    var cutoff=new Date(newest.getTime()-365*864e5);
-    perfs=perfs.filter(function(p){return !p.date || p.date>=cutoff;});
+  // Si plusieurs performances sont en jeu, une date est indispensable pour chacune : sans ça,
+  // impossible de savoir laquelle est recente et laquelle est perimee, et une vieille perf sans
+  // date resterait comptee indefiniment (elle ne "vieillit" jamais).
+  if(perfs.length>1 && perfs.some(function(p){return !p.date;})){
+    out.classList.add("hidden");
+    dateErr.style.display="block";
+    return;
   }
-  var vdot=perfs.reduce(function(s,p){return s+vdotFromPerf(p.d,p.t);},0)/perfs.length;
+  dateErr.style.display="none";
+
+  if(perfs.length>1){
+    var newest=perfs.reduce(function(a,b){return b.date>a.date?b:a;}).date;
+    var cutoff=new Date(newest.getTime()-365*864e5);
+    perfs=perfs.filter(function(p){return p.date>=cutoff;});
+  }
+  // Moyenne ponderee par recence : une perf proche de la plus recente compte presque a 100%,
+  // une perf datant de pres de 12 mois compte pour environ 40%. Choix de coaching (pas une
+  // formule scientifique), pour eviter qu'une perf tres ancienne pese autant qu'une perf recente.
+  var totalWeight=0, weightedSum=0;
+  var newestPerf = perfs.length>1 ? perfs.reduce(function(a,b){return b.date>a.date?b:a;}) : null;
+  perfs.forEach(function(pf){
+    var w=1;
+    if(newestPerf && pf.date){
+      var daysAgo=(newestPerf.date-pf.date)/864e5;
+      w=Math.max(0.4, 1-0.6*(daysAgo/365));
+    }
+    weightedSum += vdotFromPerf(pf.d,pf.t)*w;
+    totalWeight += w;
+  });
+  var vdot=weightedSum/totalWeight;
 
   var pHard=paceFromVdot(vdot,FRAC.hard);
   var vHard=vFromVo2(FRAC.hard*vdot); // vitesse au seuil, m/min
