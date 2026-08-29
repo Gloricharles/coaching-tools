@@ -83,7 +83,7 @@
   <h2>Ton dernier Hyrox <span style="text-transform:none;letter-spacing:0;font-weight:400;color:var(--muted)">(optionnel)</span></h2>
   <div class="card">
     <div class="hyrox">
-      <input id="hxPace" inputmode="numeric" placeholder="Allure moy. course (mm:ss / km)">
+      <input id="hxPace" placeholder="Allure moy. course (mm:ss / km)">
       <input id="hxDate" type="date">
     </div>
     <p class="hint">Ton allure moyenne de course sur un Hyrox passé (temps de course total / 8 km). Sert uniquement à
@@ -202,7 +202,7 @@ function optionHtml(sel){
 function addPerf(sel){
   var row=document.createElement("div"); row.className="perf";
   row.innerHTML='<select class="dist">'+optionHtml(sel||5000)+'</select>'+
-    '<input class="time" inputmode="numeric" placeholder="mm:ss">'+
+    '<input class="time" placeholder="mm:ss">'+
     '<input class="date" type="date">'+
     '<button class="rm" title="Retirer">&times;</button>';
   row.querySelector(".rm").onclick=function(){ if(perfsEl.children.length>1) row.remove(); };
