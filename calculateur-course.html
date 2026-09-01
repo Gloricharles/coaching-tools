@@ -11,7 +11,7 @@
 <style>
   :root{
     --bg:#141210; --card:#1E1B18; --card2:#141210; --line:#2C2722;
-    --txt:#F4EEE3; --muted:#A99E92; --accent:#F2752B; --accent2:#15B5A6; --warn:#F2752B;
+    --txt:#F4EEE3; --muted:#A99E92; --accent:#E15241; --accent2:#15B5A6; --warn:#E15241;
     --on-accent:#14110D;
   }
   *{box-sizing:border-box}
@@ -120,7 +120,7 @@
   <div class="card">
     <div class="hyrox">
       <input id="hxPace" placeholder="Allure moy. course (mm:ss / km)">
-      <input id="hxDate" type="date">
+      <input id="hxDate" type="date" placeholder="jj/mm/aaaa">
     </div>
     <p class="hint">Ton allure moyenne de course sur un Hyrox passé (temps de course total / 8 km). Sert uniquement à
       caler ton race pace réel et à mesurer la taxe de fatigue - elle ne touche pas tes zones d'entraînement.</p>
@@ -366,7 +366,7 @@ function addPerf(sel){
   var row=document.createElement("div"); row.className="perf";
   row.innerHTML='<select class="dist">'+optionHtml(sel||5000)+'</select>'+
     '<input class="time" placeholder="mm:ss">'+
-    '<input class="date" type="date">'+
+    '<input class="date" type="date" placeholder="jj/mm/aaaa">'+
     '<button class="rm" title="Retirer">&times;</button>';
   row.querySelector(".rm").onclick=function(){ if(perfsEl.children.length>1) row.remove(); };
   perfsEl.appendChild(row);
