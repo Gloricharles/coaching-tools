@@ -48,14 +48,15 @@
   th{color:var(--muted);font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.05em}
   td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
   .allure{font-weight:700}
-  .pace-card{padding:14px 0;border-bottom:1px solid var(--line)}
+  .pace-card{padding:9px 0;border-bottom:1px solid var(--line)}
   .pace-card:first-child{padding-top:0}
   .pace-card:last-child{border-bottom:none;padding-bottom:0}
-  .pace-card-head{display:flex;align-items:center;gap:8px;margin-bottom:6px;flex-wrap:wrap}
-  .pace-name{font-weight:700;font-size:16px}
-  .pace-range{font-size:23px;font-weight:800;font-variant-numeric:tabular-nums;line-height:1.2}
-  .pace-repere{font-size:12.5px;color:var(--accent2);margin-top:3px;line-height:1.4}
-  .pace-use{font-size:13px;color:var(--muted);margin-top:6px;line-height:1.45}
+  .pace-card-head{display:flex;align-items:baseline;justify-content:space-between;gap:8px}
+  .pace-name{font-weight:700;font-size:14.5px;white-space:nowrap}
+  .pace-name .pill{margin-left:6px}
+  .pace-range{font-size:17px;font-weight:800;font-variant-numeric:tabular-nums;white-space:nowrap;color:var(--txt)}
+  .pace-sub{font-size:11.5px;color:var(--muted);margin-top:2px;line-height:1.35}
+  .pace-sub b{color:var(--accent2);font-weight:600}
   .distbtn{background:var(--card2);border:1px solid var(--line);color:var(--txt);border-radius:8px;
     padding:7px 13px;font-size:13.5px;font-family:inherit;cursor:pointer}
   .distbtn.active{border-color:var(--accent2);color:var(--accent2)}
@@ -413,10 +414,11 @@ document.getElementById("calcBtn").onclick=function(){
     var paceStr = fmtPace(a.lo)+" - "+fmtPace(a.hi)+" /km";
     var repere = repereStr(a.lo, a.hi, vdot, a.hrNotRel) + (a.rpeSuffix || "");
     return '<div class="pace-card">'+
-      '<div class="pace-card-head"><span class="pace-name">'+a.n+'</span><span class="'+a.cls+'">'+a.tag+'</span></div>'+
-      '<div class="pace-range">'+paceStr+'</div>'+
-      '<div class="pace-repere">'+repere+'</div>'+
-      '<div class="pace-use">'+a.use+'</div>'+
+      '<div class="pace-card-head">'+
+        '<span class="pace-name">'+a.n+'<span class="'+a.cls+'">'+a.tag+'</span></span>'+
+        '<span class="pace-range">'+paceStr+'</span>'+
+      '</div>'+
+      '<div class="pace-sub"><b>'+repere+'</b> &mdash; '+a.use+'</div>'+
     '</div>';
   }).join("");
 
