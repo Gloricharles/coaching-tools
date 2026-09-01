@@ -60,6 +60,9 @@
   .pace-card.open .pace-sub{display:block}
   .allures-toggle{background:none;border:none;color:var(--accent2);font-size:12.5px;font-family:inherit;
     cursor:pointer;padding:0;margin-bottom:10px;text-decoration:underline}
+  .unitbtn{background:var(--card2);border:none;color:var(--muted);font-size:11.5px;font-family:inherit;
+    padding:6px 10px;cursor:pointer}
+  .unitbtn.active{background:var(--accent2);color:var(--card)}
   .pace-sub b{color:var(--accent2);font-weight:600}
   .distbtn{background:var(--card2);border:1px solid var(--line);color:var(--txt);border-radius:8px;
     padding:7px 13px;font-size:13.5px;font-family:inherit;cursor:pointer}
@@ -129,12 +132,17 @@
     <h2>Allures d'entraînement</h2>
     <div class="card">
       <div style="margin-bottom:10px">Référence estimée (~1h à allure seuil) : <span class="ref" id="ref5k"></span></div>
-      <button type="button" class="allures-toggle" id="toggleAllBtn">Tout afficher (RPE, FC, usage)</button>
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px;flex-wrap:wrap;">
+        <button type="button" class="allures-toggle" id="toggleAllBtn" style="margin-bottom:0;">Tout afficher (RPE, FC, usage)</button>
+        <div style="display:flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;">
+          <button type="button" class="unitbtn active" id="unitPace" data-unit="pace">min/km</button>
+          <button type="button" class="unitbtn" id="unitKmh" data-unit="kmh">km/h (tapis)</button>
+        </div>
+      </div>
       <div id="allures"></div>
       <p class="hint" style="margin-top:10px;">La FC varie beaucoup d'une personne à l'autre - le %FCmax indiqué est un repère théorique (équation de
-        Swain), pas une mesure individuelle. La référence la plus fiable reste ta FC seuil mesurée sur le terrain
-        (test CLM 30 min), pas un %FCmax de montre. Sur very hard et fast, la FC réagit avec retard : pilote au
-        chrono, pas au cardio.</p>
+        Swain), pas une mesure individuelle. La référence la plus fiable reste ta FC seuil réelle, pas un %FCmax
+        de montre. Sur very hard et fast, la FC réagit avec retard : pilote au chrono, pas au cardio.</p>
       <div class="note" id="raceNote"></div>
       <div class="diag hidden" id="diag"></div>
     </div>
@@ -156,6 +164,15 @@
       </div>
       <div id="convResult" style="margin-top:14px;font-size:26px;font-weight:800;color:var(--accent2);font-variant-numeric:tabular-nums;">--:--</div>
       <p class="hint">Renseigne une allure - la tienne, ou une des allures ci-dessus - et une distance, pour obtenir le temps cible sur cette distance precise.</p>
+    </div>
+
+    <h2>Convertisseur allure &harr; km/h</h2>
+    <div class="card">
+      <div class="hyrox">
+        <input id="convPaceKmh" inputmode="text" placeholder="Allure (mm:ss / km)">
+        <input id="convKmh" type="number" inputmode="decimal" placeholder="Vitesse (km/h)" min="1" step="0.1">
+      </div>
+      <p class="hint">Renseigne l'un ou l'autre, l'autre se calcule automatiquement - pratique pour regler un tapis a n'importe quelle allure, meme en dehors des zones ci-dessus.</p>
     </div>
 
     <h2>Équivalences théoriques par distance</h2>
@@ -300,6 +317,41 @@ function fmtTime(sec){
   return h>0? h+":"+mm+":"+ss : m+":"+ss;
 }
 function fmtPace(sp){ var m=Math.floor(sp/60), s=Math.round(sp%60); if(s===60){m++;s=0;} return m+":"+(s<10?"0":"")+s; }
+function fmtKmh(paceSec){ return (3600/paceSec).toFixed(1)+" km/h"; }
+var lastAllures=null, lastVdot=null, currentUnit="pace";
+function renderAllureCards(unit){
+  if(!lastAllures) return;
+  document.getElementById("allures").innerHTML=lastAllures.map(function(a){
+    // En min/km : rapide (petit temps) affiche en premier. En km/h, la vitesse la plus basse (allure la
+    // plus lente = a.hi) doit venir en premier pour une lecture croissante, naturelle sur un tapis.
+    var paceStr = unit==="kmh"
+      ? fmtKmh(a.hi)+" - "+fmtKmh(a.lo)
+      : fmtPace(a.lo)+" - "+fmtPace(a.hi)+" /km";
+    var repere = repereStr(a.lo, a.hi, lastVdot, a.hrNotRel) + (a.rpeSuffix || "");
+    return '<div class="pace-card">'+
+      '<div class="pace-card-head">'+
+        '<span class="pace-name"><span class="pace-chevron">&#9656;</span>'+a.n+'<span class="'+a.cls+'">'+a.tag+'</span></span>'+
+        '<span class="pace-range">'+paceStr+'</span>'+
+      '</div>'+
+      '<div class="pace-sub"><b>'+repere+'</b> &mdash; '+a.use+'</div>'+
+    '</div>';
+  }).join("");
+  [].slice.call(document.querySelectorAll(".pace-card")).forEach(function(card){
+    card.addEventListener("click", function(){ card.classList.toggle("open"); });
+  });
+}
+document.getElementById("unitPace").addEventListener("click", function(){
+  currentUnit="pace";
+  document.getElementById("unitPace").classList.add("active");
+  document.getElementById("unitKmh").classList.remove("active");
+  renderAllureCards(currentUnit);
+});
+document.getElementById("unitKmh").addEventListener("click", function(){
+  currentUnit="kmh";
+  document.getElementById("unitKmh").classList.add("active");
+  document.getElementById("unitPace").classList.remove("active");
+  renderAllureCards(currentUnit);
+});
 // Marge volontaire autour de l'allure calculee : le modele donne un centre, pas une precision
 // a la seconde pres. Largeur choisie par jugement coaching (pas une valeur issue de la litterature),
 // a ajuster si besoin.
@@ -415,20 +467,8 @@ document.getElementById("calcBtn").onclick=function(){
   // Plus lent (haut) -> plus rapide (bas) : tri par allure moyenne de chaque fourchette, decroissant
   // en secondes/km (un nombre de secondes/km plus grand = plus lent).
   allures.sort(function(a,b){ return (b.lo+b.hi) - (a.lo+a.hi); });
-  document.getElementById("allures").innerHTML=allures.map(function(a){
-    var paceStr = fmtPace(a.lo)+" - "+fmtPace(a.hi)+" /km";
-    var repere = repereStr(a.lo, a.hi, vdot, a.hrNotRel) + (a.rpeSuffix || "");
-    return '<div class="pace-card">'+
-      '<div class="pace-card-head">'+
-        '<span class="pace-name"><span class="pace-chevron">&#9656;</span>'+a.n+'<span class="'+a.cls+'">'+a.tag+'</span></span>'+
-        '<span class="pace-range">'+paceStr+'</span>'+
-      '</div>'+
-      '<div class="pace-sub"><b>'+repere+'</b> &mdash; '+a.use+'</div>'+
-    '</div>';
-  }).join("");
-  [].slice.call(document.querySelectorAll(".pace-card")).forEach(function(card){
-    card.addEventListener("click", function(){ card.classList.toggle("open"); });
-  });
+  lastAllures=allures; lastVdot=vdot;
+  renderAllureCards(currentUnit);
   var toggleBtn=document.getElementById("toggleAllBtn");
   var allOpen=false;
   toggleBtn.onclick=function(){
@@ -501,6 +541,18 @@ document.getElementById("convDist").addEventListener("input", updateConverter);
     btn.classList.add("active");
     updateConverter();
   });
+});
+
+// ============ Convertisseur allure <-> km/h ============
+document.getElementById("convPaceKmh").addEventListener("input", function(){
+  var paceSec=parseTime(this.value);
+  var kmhField=document.getElementById("convKmh");
+  kmhField.value = paceSec ? (3600/paceSec).toFixed(1) : "";
+});
+document.getElementById("convKmh").addEventListener("input", function(){
+  var kmh=parseFloat(this.value);
+  var paceField=document.getElementById("convPaceKmh");
+  paceField.value = (kmh && kmh>0) ? fmtPace(3600/kmh) : "";
 });
 </script>
 </body>
