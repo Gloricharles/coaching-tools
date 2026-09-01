@@ -29,6 +29,8 @@
   .hyrox{display:grid;grid-template-columns:1.3fr 1.1fr;gap:8px;align-items:center}
   select,input{width:100%;background:var(--card2);border:1px solid var(--line);color:var(--txt);
     border-radius:9px;padding:11px 10px;font-size:15px;font-family:inherit;-webkit-appearance:none;appearance:none}
+  select{background-image:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%23A99E92" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>');
+    background-repeat:no-repeat;background-position:right 12px center;background-size:16px;padding-right:38px;cursor:pointer}
   select:focus,input:focus{outline:none;border-color:var(--accent)}
   input::placeholder{color:var(--muted)}
   .rm{background:transparent;border:none;color:var(--muted);font-size:20px;cursor:pointer;padding:6px;line-height:1}
@@ -80,6 +82,19 @@
       récente sont moyennées ; les plus anciennes sont ignorées. Ces perfs calibrent tes zones d'entraînement.</p>
   </div>
 
+  <h2>Ton profil</h2>
+  <div class="card">
+    <label for="hybridProfile" style="display:block;font-size:12.5px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:6px;">Choisis ton profil</label>
+    <select id="hybridProfile">
+      <option value="force">Plutôt orienté force (peu d'entraînement course/stations combinées)</option>
+      <option value="runner">Plutôt coureur pur (peu de travail stations sous fatigue)</option>
+      <option value="hybrid">Hybride équilibré (course et stations regulierement combinees a l'entrainement)</option>
+    </select>
+    <p class="hint">Influence tes allures easy/récup (un profil orienté force doit courir plus lentement qu'un
+      coureur pur pour rester dans la bonne zone, à score de forme égal) et, en l'absence de Hyrox mesuré,
+      affine la fourchette de "taxe de fatigue" estimée sur le race pace.</p>
+  </div>
+
   <h2>Ton dernier Hyrox <span style="text-transform:none;letter-spacing:0;font-weight:400;color:var(--muted)">(optionnel)</span></h2>
   <div class="card">
     <div class="hyrox">
@@ -88,14 +103,6 @@
     </div>
     <p class="hint">Ton allure moyenne de course sur un Hyrox passé (temps de course total / 8 km). Sert uniquement à
       caler ton race pace réel et à mesurer la taxe de fatigue - elle ne touche pas tes zones d'entraînement.</p>
-    <select id="hybridProfile" style="margin-top:10px;">
-      <option value="force">Plutôt orienté force (peu d'entraînement course/stations combinées)</option>
-      <option value="runner">Plutôt coureur pur (peu de travail stations sous fatigue)</option>
-      <option value="hybrid">Hybride équilibré (course et stations regulierement combinees a l'entrainement)</option>
-    </select>
-    <p class="hint">Utilisé uniquement si tu n'as pas de Hyrox mesuré ci-dessus : affine la fourchette de "taxe de
-      fatigue" estimée selon ton profil. Un profil hybride bien entraîné encaisse mieux la fatigue des stations
-      qu'un profil très polarisé (que ce soit vers la course ou vers la force).</p>
     <button class="go" id="calcBtn">Calculer mes allures</button>
     <p class="hint" id="dateError" style="display:none;color:var(--accent);font-weight:600;">Ajoute une date à chaque performance renseignée : sans ça, impossible de savoir laquelle est la plus récente pour la moyenne.</p>
   </div>
@@ -140,6 +147,25 @@
 <script>
 // ============ Modèle vitesse-VO2 (Daniels-Gilbert) ============
 var FRAC = {easyFast:0.72, easySlow:0.63, jog:0.58, hard:0.88, fast:1.08, race:0.82};
+// Le modele vitesse-VO2 est calibre sur des coureurs entraines (economie de course standard).
+// Un profil oriente force a typiquement une economie de course moins developpee et une dominante
+// fibres rapides moins efficace en endurance aerobie pure : sur un effort dur il peut compenser
+// par de la puissance/anaerobie, mais pas sur un effort facile/recup, ou tout doit venir de
+// l'aerobie. A score de forme egal, il doit donc viser une allure facile/recup plus lente qu'un
+// coureur pur. Magnitude choisie par jugement de coaching (pas une donnee publiee specifique),
+// runner = calibrage du modele d'origine (aucun ajustement).
+var PROFILE_ADJUST = {
+  runner: 0,
+  hybrid: 0.02,
+  force:  0.05
+};
+function currentProfile(){
+  var el = document.getElementById("hybridProfile");
+  return el ? el.value : "force";
+}
+function profileAdjust(){
+  return PROFILE_ADJUST[currentProfile()] || 0;
+}
 // Taxe de fatigue estimee (s/km au-dessus de l'allure seuil S2), utilisee seulement si aucun Hyrox
 // n'est mesure. Bornes par profil auto-declare : un hybride bien entraine encaisse mieux la fatigue
 // des stations qu'un profil polarise (donnees Hyrox reelles : la derive de course varie du simple
@@ -203,7 +229,6 @@ function fmtPace(sp){ var m=Math.floor(sp/60), s=Math.round(sp%60); if(s===60){m
 // Marge volontaire autour de l'allure calculee : le modele donne un centre, pas une precision
 // a la seconde pres. Largeur choisie par jugement coaching (pas une valeur issue de la litterature),
 // a ajuster si besoin.
-function paceRange(centerSec, bufferSec){ return fmtPace(centerSec-bufferSec)+" - "+fmtPace(centerSec+bufferSec); }
 function fmtSec(x){ x=Math.round(x); return (x>=0?"+":"-")+Math.abs(x)+" s/km"; }
 
 // ============ Formulaire ============
@@ -285,38 +310,39 @@ document.getElementById("calcBtn").onclick=function(){
   var distHard=(vHard*60)/1000; // distance parcourue en ~1h a cette allure, km
   document.getElementById("ref5k").textContent=distHard.toFixed(1)+" km  ("+fmtPace(pHard)+"/km)"+(hyroxOnly?"  (estimation degradee)":"");
 
-  var pEasyF=paceFromVdot(vdot,FRAC.easyFast);
-  var pEasyS=paceFromVdot(vdot,FRAC.easySlow);
+  var adj = profileAdjust();
+  var pEasyF=paceFromVdot(vdot,FRAC.easyFast-adj);
+  var pEasyS=paceFromVdot(vdot,FRAC.easySlow-adj);
 
   // race pace : fourchette bornée par la capacité fraîche et, si dispo, l'Hyrox mesuré
-  var rLo, rHi, raceRow;
+  var raceRow;
   if(hyroxOnly){
-    raceRow={n:"race pace", tag:"seule ref.", cls:"pill",
-      pace:paceRange(hxPace,5),
+    raceRow={n:"race pace", tag:"seule ref.", cls:"pill", lo:hxPace-5, hi:hxPace+5,
       use:"Ton seul Hyrox connu, utilise comme base de tout le calcul. Pas de comparaison possible sans une performance de course independante."};
   } else if(hxPace){
-    raceRow={n:"race pace", tag:"mesuré", cls:"pill meas",
-      pace:paceRange(hxPace,5),
+    raceRow={n:"race pace", tag:"mesuré", cls:"pill meas", lo:hxPace-5, hi:hxPace+5,
       use:"Ta vraie allure de course en Hyrox, mesurée (± marge jour de course). C'est ta reference la plus fiable pour t'entrainer - le modele theorique 'a froid' est deja compare dans le diagnostic ci-dessous."};
   } else {
-    var profile=document.getElementById("hybridProfile").value;
+    var profile=currentProfile();
     var tax=TAX_BY_PROFILE[profile]||TAX_BY_PROFILE.force;
-    rLo=pHard+tax.low; rHi=pHard+tax.high;
-    raceRow={n:"race pace", tag:"estimé", cls:"pill",
-      pace:fmtPace(rLo)+" - "+fmtPace(rHi),
+    raceRow={n:"race pace", tag:"estimé", cls:"pill", lo:pHard+tax.low, hi:pHard+tax.high,
       use:"Base sur ton allure seuil (S2) a froid + une taxe de fatigue estimee selon ton profil hybride. La taxe reelle peut differer : encode un Hyrox pour la caler sur du réel."};
   }
 
   var allures=[
-    {n:"easy", tag:"base", cls:"pill", pace:fmtPace(pEasyS)+" - "+fmtPace(pEasyF), use:"Course facile, conversationnelle. Base aérobie."},
-    {n:"jog", tag:"récup", cls:"pill", pace:paceRange(paceFromVdot(vdot,FRAC.jog),6), use:"Trot de récupération entre les efforts (jg)."},
-    {n:"hard", tag:"seuil 2", cls:"pill", pace:paceRange(pHard,4), use:"Comfortably hard. Blocs longs (1600 m, 5000 m)."},
-    {n:"fast", tag:"reps", cls:"pill", pace:paceRange(paceFromVdot(vdot,FRAC.fast),4), use:"Très rapide, foulées et sensations propres (200-400 m)."},
+    {n:"easy", tag:"base", cls:"pill", lo:pEasyF, hi:pEasyS, use:"Course facile, conversationnelle. Base aérobie."},
+    {n:"jog", tag:"récup", cls:"pill", lo:paceFromVdot(vdot,FRAC.jog-adj)-6, hi:paceFromVdot(vdot,FRAC.jog-adj)+6, use:"Trot de récupération entre les efforts (jg)."},
+    {n:"hard", tag:"seuil 2", cls:"pill", lo:pHard-4, hi:pHard+4, use:"Comfortably hard. Blocs longs (1600 m, 5000 m)."},
+    {n:"fast", tag:"reps", cls:"pill", lo:paceFromVdot(vdot,FRAC.fast)-4, hi:paceFromVdot(vdot,FRAC.fast)+4, use:"Très rapide, foulées et sensations propres (200-400 m)."},
     raceRow
   ];
+  // Plus lent (haut) -> plus rapide (bas) : tri par allure moyenne de chaque fourchette, decroissant
+  // en secondes/km (un nombre de secondes/km plus grand = plus lent).
+  allures.sort(function(a,b){ return (b.lo+b.hi) - (a.lo+a.hi); });
   document.getElementById("allures").innerHTML=allures.map(function(a){
+    var paceStr = fmtPace(a.lo)+" - "+fmtPace(a.hi);
     return '<tr><td class="allure">'+a.n+'<span class="'+a.cls+'">'+a.tag+'</span></td>'+
-      '<td class="num">'+a.pace+'</td><td class="def">'+a.use+'</td></tr>';
+      '<td class="num">'+paceStr+'</td><td class="def">'+a.use+'</td></tr>';
   }).join("");
 
   var diag=document.getElementById("diag"), note=document.getElementById("raceNote");
