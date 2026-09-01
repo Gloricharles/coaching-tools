@@ -146,7 +146,7 @@
 
 <script>
 // ============ Modèle vitesse-VO2 (Daniels-Gilbert) ============
-var FRAC = {easyFast:0.72, easySlow:0.63, jog:0.58, hard:0.88, fast:1.08, race:0.82};
+var FRAC = {easyFast:0.72, easySlow:0.63, jog:0.58, hard:0.88, fast:1.08};
 // Le modele vitesse-VO2 est calibre sur des coureurs entraines (economie de course standard).
 // Un profil oriente force a typiquement une economie de course moins developpee et une dominante
 // fibres rapides moins efficace en endurance aerobie pure : sur un effort dur il peut compenser
@@ -201,6 +201,16 @@ function vo2FromV(v){ return -4.60 + 0.182258*v + 0.000104*v*v; }
 function vFromVo2(vo2){ var a=0.000104,b=0.182258,c=-(4.60+vo2); return (-b+Math.sqrt(b*b-4*a*c))/(2*a); }
 function pctMax(t){ return 0.8 + 0.1894393*Math.exp(-0.012778*t) + 0.2989558*Math.exp(-0.1932605*t); }
 function vdotFromPerf(d,ts){ var tm=ts/60, v=d/tm; return vo2FromV(v)/pctMax(tm); }
+function predictedDurationMin(vd, dist){
+  var lo=1, hi=400;
+  for(var i=0;i<60;i++){ var mid=(lo+hi)/2; if(vdotFromPerf(dist,mid*60)>vd) lo=mid; else hi=mid; }
+  return (lo+hi)/2;
+}
+// Le pourcentage d'effort soutenable sur marathon depend de la duree reelle de l'effort (plus c'est
+// long, plus le pourcentage soutenable baisse). Un debutant met beaucoup plus longtemps a boucler un
+// marathon qu'un coureur rapide : utiliser 0.82 fixe pour tout le monde sous-estime cet effet pour les
+// profils lents. Calcule le pourcentage reel a partir de la duree marathon predite pour cette personne.
+function mPct(vd){ return pctMax(predictedDurationMin(vd, 42195)); }
 function paceFromVdot(vd,f){ return 60000/vFromVo2(f*vd); }
 function timeForDist(vd,d){
   var km=d/1000, lo=km*120, hi=km*900;
@@ -332,6 +342,7 @@ document.getElementById("calcBtn").onclick=function(){
   var allures=[
     {n:"easy", tag:"base", cls:"pill", lo:pEasyF, hi:pEasyS, use:"Course facile, conversationnelle. Base aérobie."},
     {n:"jog", tag:"récup", cls:"pill", lo:paceFromVdot(vdot,FRAC.jog-adj)-6, hi:paceFromVdot(vdot,FRAC.jog-adj)+6, use:"Trot de récupération entre les efforts (jg)."},
+    {n:"steady", tag:"Z3 / M", cls:"pill", lo:paceFromVdot(vdot,mPct(vdot))-5, hi:paceFromVdot(vdot,mPct(vdot))+5, use:"Allure soutenue continue, a froid (hors contexte Hyrox). Blocs steady 15-30 min, allure semi/marathon."},
     {n:"hard", tag:"seuil 2", cls:"pill", lo:pHard-4, hi:pHard+4, use:"Comfortably hard. Blocs longs (1600 m, 5000 m)."},
     {n:"fast", tag:"reps", cls:"pill", lo:paceFromVdot(vdot,FRAC.fast)-4, hi:paceFromVdot(vdot,FRAC.fast)+4, use:"Très rapide, foulées et sensations propres (200-400 m)."},
     raceRow
