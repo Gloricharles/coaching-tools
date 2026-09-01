@@ -47,6 +47,11 @@
   th{color:var(--muted);font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.05em}
   td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
   .allure{font-weight:700}
+  .repere{font-size:11px;font-weight:400;color:var(--accent2);margin-top:2px;font-variant-numeric:normal}
+  .distbtn{background:var(--card2);border:1px solid var(--line);color:var(--txt);border-radius:8px;
+    padding:7px 13px;font-size:13.5px;font-family:inherit;cursor:pointer}
+  .distbtn.active{border-color:var(--accent2);color:var(--accent2)}
+  .distbtn:hover{border-color:var(--accent2)}
   .pill{display:inline-block;font-size:11px;padding:2px 7px;border-radius:20px;background:var(--card2);
     color:var(--muted);margin-left:6px;font-weight:600;vertical-align:middle}
   .pill.meas{background:rgba(21,181,166,.15);color:var(--accent2)}
@@ -115,8 +120,31 @@
         <thead><tr><th>Allure</th><th class="num">min/km</th><th>Usage</th></tr></thead>
         <tbody id="allures"></tbody>
       </table>
+      <p class="hint" style="margin-top:10px;">La FC varie beaucoup d'une personne à l'autre - le %FCmax indiqué est un repère théorique (équation de
+        Swain), pas une mesure individuelle. La référence la plus fiable reste ta FC seuil mesurée sur le terrain
+        (test CLM 30 min), pas un %FCmax de montre. Sur very hard et fast, la FC réagit avec retard : pilote au
+        chrono, pas au cardio.</p>
       <div class="note" id="raceNote"></div>
       <div class="diag hidden" id="diag"></div>
+    </div>
+
+    <h2>Convertisseur allure &rarr; temps</h2>
+    <div class="card">
+      <div class="hyrox">
+        <input id="convPace" inputmode="text" placeholder="Allure (mm:ss / km)">
+        <input id="convDist" type="number" placeholder="Distance (m)" value="200" min="10" step="10">
+      </div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px;">
+        <button type="button" class="distbtn" data-d="100">100 m</button>
+        <button type="button" class="distbtn active" data-d="200">200 m</button>
+        <button type="button" class="distbtn" data-d="300">300 m</button>
+        <button type="button" class="distbtn" data-d="400">400 m</button>
+        <button type="button" class="distbtn" data-d="600">600 m</button>
+        <button type="button" class="distbtn" data-d="800">800 m</button>
+        <button type="button" class="distbtn" data-d="1000">1000 m</button>
+      </div>
+      <div id="convResult" style="margin-top:14px;font-size:26px;font-weight:800;color:var(--accent2);font-variant-numeric:tabular-nums;">--:--</div>
+      <p class="hint">Renseigne une allure - la tienne, ou une des allures ci-dessus - et une distance, pour obtenir le temps cible sur cette distance precise.</p>
     </div>
 
     <h2>Équivalences théoriques par distance</h2>
@@ -146,7 +174,7 @@
 
 <script>
 // ============ Modèle vitesse-VO2 (Daniels-Gilbert) ============
-var FRAC = {easyFast:0.72, easySlow:0.63, jog:0.58, hard:0.88, fast:1.08};
+var FRAC = {easyFast:0.72, easySlow:0.63, hard:0.88, fast:1.08};
 // Le modele vitesse-VO2 est calibre sur des coureurs entraines (economie de course standard).
 // Un profil oriente force a typiquement une economie de course moins developpee et une dominante
 // fibres rapides moins efficace en endurance aerobie pure : sur un effort dur il peut compenser
@@ -211,6 +239,31 @@ function predictedDurationMin(vd, dist){
 // marathon qu'un coureur rapide : utiliser 0.82 fixe pour tout le monde sous-estime cet effet pour les
 // profils lents. Calcule le pourcentage reel a partir de la duree marathon predite pour cette personne.
 function mPct(vd){ return pctMax(predictedDurationMin(vd, 42195)); }
+
+// Reperes RPE et FC, calcules dynamiquement pour chaque allure (pas des valeurs figees par zone).
+// %FCmax via l'equation de Swain (1994, revue par les pairs) : %FCmax = 0.64 x %VO2max + 37.
+// Cette relation n'est PAS lineaire (une erreur frequente serait de supposer %FCmax = %VO2max).
+// Au-dela de 100% VO2max (efforts supramaximaux, ex. reps), la FC plafonne a son max par definition :
+// la formule est cappee a 100%, elle perd son sens au-dela.
+function vo2PctFromPace(paceSec, vd){ var v=60000/paceSec; return vo2FromV(v)/vd; }
+function hrPctFromVo2Pct(pct){ return Math.min(100, Math.max(50, Math.round(0.64*pct*100+37))); }
+function rpeFromVo2Pct(pct){
+  if(pct<0.60) return "2-3";
+  if(pct<0.75) return "3-4";
+  if(pct<0.86) return "5-6";
+  if(pct<0.95) return "7";
+  if(pct<1.05) return "8-9";
+  return "9-10";
+}
+function repereStr(loSec, hiSec, vd, hrNotRelevant){
+  // loSec = allure la plus rapide (effort le plus intense) -> %VO2max/FC le plus haut
+  var pctHigh = vo2PctFromPace(loSec, vd), pctLow = vo2PctFromPace(hiSec, vd);
+  var rpe = rpeFromVo2Pct((pctLow+pctHigh)/2);
+  if(hrNotRelevant) return "RPE "+rpe+" &middot; chrono uniquement (FC non pertinente, trop court)";
+  var hrLow = hrPctFromVo2Pct(pctLow), hrHigh = hrPctFromVo2Pct(pctHigh);
+  var hrStr = (hrLow>=100 && hrHigh>=100) ? "~100% FCmax" : hrLow+"-"+hrHigh+"% FCmax";
+  return "RPE "+rpe+" &middot; "+hrStr;
+}
 function paceFromVdot(vd,f){ return 60000/vFromVo2(f*vd); }
 function timeForDist(vd,d){
   var km=d/1000, lo=km*120, hi=km*900;
@@ -326,25 +379,26 @@ document.getElementById("calcBtn").onclick=function(){
 
   // race pace : fourchette bornée par la capacité fraîche et, si dispo, l'Hyrox mesuré
   var raceRow;
+  var raceRpeNote = " (ressenti reel plus eleve qu'a froid : sortie de station, pas un effort isole)";
   if(hyroxOnly){
-    raceRow={n:"race pace", tag:"seule ref.", cls:"pill", lo:hxPace-5, hi:hxPace+5,
+    raceRow={n:"race pace", tag:"seule ref.", cls:"pill", lo:hxPace-5, hi:hxPace+5, rpeSuffix:raceRpeNote,
       use:"Ton seul Hyrox connu, utilise comme base de tout le calcul. Pas de comparaison possible sans une performance de course independante."};
   } else if(hxPace){
-    raceRow={n:"race pace", tag:"mesuré", cls:"pill meas", lo:hxPace-5, hi:hxPace+5,
+    raceRow={n:"race pace", tag:"mesuré", cls:"pill meas", lo:hxPace-5, hi:hxPace+5, rpeSuffix:raceRpeNote,
       use:"Ta vraie allure de course en Hyrox, mesurée (± marge jour de course). C'est ta reference la plus fiable pour t'entrainer - le modele theorique 'a froid' est deja compare dans le diagnostic ci-dessous."};
   } else {
     var profile=currentProfile();
     var tax=TAX_BY_PROFILE[profile]||TAX_BY_PROFILE.force;
-    raceRow={n:"race pace", tag:"estimé", cls:"pill", lo:pHard+tax.low, hi:pHard+tax.high,
+    raceRow={n:"race pace", tag:"estimé", cls:"pill", lo:pHard+tax.low, hi:pHard+tax.high, rpeSuffix:raceRpeNote,
       use:"Base sur ton allure seuil (S2) a froid + une taxe de fatigue estimee selon ton profil hybride. La taxe reelle peut differer : encode un Hyrox pour la caler sur du réel."};
   }
 
   var allures=[
     {n:"easy", tag:"base", cls:"pill", lo:pEasyF, hi:pEasyS, use:"Course facile, conversationnelle. Base aérobie."},
-    {n:"jog", tag:"récup", cls:"pill", lo:paceFromVdot(vdot,FRAC.jog-adj)-6, hi:paceFromVdot(vdot,FRAC.jog-adj)+6, use:"Trot de récupération entre les efforts (jg)."},
     {n:"tempo", tag:"Z3 / M", cls:"pill", lo:paceFromVdot(vdot,mPct(vdot))-5, hi:paceFromVdot(vdot,mPct(vdot))+5, use:"Allure soutenue continue, a froid (hors contexte Hyrox). Blocs tempo 15-30 min, allure semi/marathon."},
-    {n:"hard", tag:"seuil 2", cls:"pill", lo:pHard-4, hi:pHard+4, use:"Comfortably hard. Blocs longs (1600 m, 5000 m)."},
-    {n:"fast", tag:"reps", cls:"pill", lo:paceFromVdot(vdot,FRAC.fast)-4, hi:paceFromVdot(vdot,FRAC.fast)+4, use:"Très rapide, foulées et sensations propres (200-400 m)."},
+    {n:"hard", tag:"T / seuil", cls:"pill", lo:pHard-4, hi:pHard+4, use:"Comfortably hard. Blocs longs (1600 m, 5000 m)."},
+    {n:"very hard", tag:"I / VO2max", cls:"pill", lo:paceFromVdot(vdot,1.00)-4, hi:paceFromVdot(vdot,1.00)+4, hrNotRel:true, use:"L'allure la plus dure. Fractions 3-5 min, ça pique. Récup active entre les fractions : au jog (rythme qui permet de récupérer sans marcher), jamais à l'arrêt complet."},
+    {n:"fast", tag:"R / reps", cls:"pill", lo:paceFromVdot(vdot,FRAC.fast)-4, hi:paceFromVdot(vdot,FRAC.fast)+4, hrNotRel:true, use:"Très rapide, foulées et sensations propres (200-400 m). Récup complète au jog entre les fractions, doit ressortir léger."},
     raceRow
   ];
   // Plus lent (haut) -> plus rapide (bas) : tri par allure moyenne de chaque fourchette, decroissant
@@ -352,8 +406,9 @@ document.getElementById("calcBtn").onclick=function(){
   allures.sort(function(a,b){ return (b.lo+b.hi) - (a.lo+a.hi); });
   document.getElementById("allures").innerHTML=allures.map(function(a){
     var paceStr = fmtPace(a.lo)+" - "+fmtPace(a.hi);
+    var repere = repereStr(a.lo, a.hi, vdot, a.hrNotRel) + (a.rpeSuffix || "");
     return '<tr><td class="allure">'+a.n+'<span class="'+a.cls+'">'+a.tag+'</span></td>'+
-      '<td class="num">'+paceStr+'</td><td class="def">'+a.use+'</td></tr>';
+      '<td class="num">'+paceStr+'<div class="repere">'+repere+'</div></td><td class="def">'+a.use+'</td></tr>';
   }).join("");
 
   var diag=document.getElementById("diag"), note=document.getElementById("raceNote");
@@ -395,6 +450,30 @@ document.getElementById("calcBtn").onclick=function(){
   out.classList.remove("hidden");
   out.scrollIntoView({behavior:"smooth",block:"start"});
 };
+
+// ============ Convertisseur allure -> temps ============
+function fmtSplitTime(sec){
+  if(sec<60) return sec.toFixed(1)+" s";
+  var m=Math.floor(sec/60), s=sec%60;
+  return m+":"+(s<10?"0":"")+s.toFixed(1);
+}
+function updateConverter(){
+  var paceSec=parseTime(document.getElementById("convPace").value);
+  var dist=parseFloat(document.getElementById("convDist").value);
+  var out=document.getElementById("convResult");
+  if(!paceSec || !dist || dist<=0){ out.textContent="--:--"; return; }
+  out.textContent=fmtSplitTime(paceSec*(dist/1000));
+}
+document.getElementById("convPace").addEventListener("input", updateConverter);
+document.getElementById("convDist").addEventListener("input", updateConverter);
+[].slice.call(document.querySelectorAll(".distbtn")).forEach(function(btn){
+  btn.addEventListener("click", function(){
+    document.getElementById("convDist").value=btn.dataset.d;
+    [].slice.call(document.querySelectorAll(".distbtn")).forEach(function(b){b.classList.remove("active");});
+    btn.classList.add("active");
+    updateConverter();
+  });
+});
 </script>
 </body>
 </html>
