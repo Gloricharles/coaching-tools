@@ -48,14 +48,18 @@
   th{color:var(--muted);font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.05em}
   td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
   .allure{font-weight:700}
-  .pace-card{padding:9px 0;border-bottom:1px solid var(--line)}
+  .pace-card{padding:10px 0;border-bottom:1px solid var(--line);cursor:pointer}
   .pace-card:first-child{padding-top:0}
   .pace-card:last-child{border-bottom:none;padding-bottom:0}
   .pace-card-head{display:flex;align-items:baseline;justify-content:space-between;gap:8px}
-  .pace-name{font-weight:700;font-size:14.5px;white-space:nowrap}
-  .pace-name .pill{margin-left:6px}
+  .pace-name{font-weight:700;font-size:14.5px;white-space:nowrap;display:flex;align-items:baseline;gap:6px}
+  .pace-chevron{color:var(--muted);font-size:11px;transition:transform .15s;display:inline-block}
+  .pace-card.open .pace-chevron{transform:rotate(90deg)}
   .pace-range{font-size:17px;font-weight:800;font-variant-numeric:tabular-nums;white-space:nowrap;color:var(--txt)}
-  .pace-sub{font-size:11.5px;color:var(--muted);margin-top:2px;line-height:1.35}
+  .pace-sub{font-size:11.5px;color:var(--muted);margin-top:6px;line-height:1.4;display:none}
+  .pace-card.open .pace-sub{display:block}
+  .allures-toggle{background:none;border:none;color:var(--accent2);font-size:12.5px;font-family:inherit;
+    cursor:pointer;padding:0;margin-bottom:10px;text-decoration:underline}
   .pace-sub b{color:var(--accent2);font-weight:600}
   .distbtn{background:var(--card2);border:1px solid var(--line);color:var(--txt);border-radius:8px;
     padding:7px 13px;font-size:13.5px;font-family:inherit;cursor:pointer}
@@ -125,6 +129,7 @@
     <h2>Allures d'entraînement</h2>
     <div class="card">
       <div style="margin-bottom:10px">Référence estimée (~1h à allure seuil) : <span class="ref" id="ref5k"></span></div>
+      <button type="button" class="allures-toggle" id="toggleAllBtn">Tout afficher (RPE, FC, usage)</button>
       <div id="allures"></div>
       <p class="hint" style="margin-top:10px;">La FC varie beaucoup d'une personne à l'autre - le %FCmax indiqué est un repère théorique (équation de
         Swain), pas une mesure individuelle. La référence la plus fiable reste ta FC seuil mesurée sur le terrain
@@ -415,12 +420,24 @@ document.getElementById("calcBtn").onclick=function(){
     var repere = repereStr(a.lo, a.hi, vdot, a.hrNotRel) + (a.rpeSuffix || "");
     return '<div class="pace-card">'+
       '<div class="pace-card-head">'+
-        '<span class="pace-name">'+a.n+'<span class="'+a.cls+'">'+a.tag+'</span></span>'+
+        '<span class="pace-name"><span class="pace-chevron">&#9656;</span>'+a.n+'<span class="'+a.cls+'">'+a.tag+'</span></span>'+
         '<span class="pace-range">'+paceStr+'</span>'+
       '</div>'+
       '<div class="pace-sub"><b>'+repere+'</b> &mdash; '+a.use+'</div>'+
     '</div>';
   }).join("");
+  [].slice.call(document.querySelectorAll(".pace-card")).forEach(function(card){
+    card.addEventListener("click", function(){ card.classList.toggle("open"); });
+  });
+  var toggleBtn=document.getElementById("toggleAllBtn");
+  var allOpen=false;
+  toggleBtn.onclick=function(){
+    allOpen=!allOpen;
+    [].slice.call(document.querySelectorAll(".pace-card")).forEach(function(card){
+      card.classList.toggle("open", allOpen);
+    });
+    toggleBtn.textContent = allOpen ? "Tout masquer" : "Tout afficher (RPE, FC, usage)";
+  };
 
   var diag=document.getElementById("diag"), note=document.getElementById("raceNote");
   if(hyroxOnly){
