@@ -31,6 +31,7 @@
     border-radius:9px;padding:11px 10px;font-size:15px;font-family:inherit;-webkit-appearance:none;appearance:none}
   select{background-image:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%23A99E92" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>');
     background-repeat:no-repeat;background-position:right 12px center;background-size:16px;padding-right:38px;cursor:pointer}
+  input[type="date"]{-webkit-appearance:auto;appearance:auto;color-scheme:dark}
   select:focus,input:focus{outline:none;border-color:var(--accent)}
   input::placeholder{color:var(--muted)}
   .rm{background:transparent;border:none;color:var(--muted);font-size:20px;cursor:pointer;padding:6px;line-height:1}
@@ -47,7 +48,14 @@
   th{color:var(--muted);font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.05em}
   td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
   .allure{font-weight:700}
-  .repere{font-size:11px;font-weight:400;color:var(--accent2);margin-top:2px;font-variant-numeric:normal}
+  .pace-card{padding:14px 0;border-bottom:1px solid var(--line)}
+  .pace-card:first-child{padding-top:0}
+  .pace-card:last-child{border-bottom:none;padding-bottom:0}
+  .pace-card-head{display:flex;align-items:center;gap:8px;margin-bottom:6px;flex-wrap:wrap}
+  .pace-name{font-weight:700;font-size:16px}
+  .pace-range{font-size:23px;font-weight:800;font-variant-numeric:tabular-nums;line-height:1.2}
+  .pace-repere{font-size:12.5px;color:var(--accent2);margin-top:3px;line-height:1.4}
+  .pace-use{font-size:13px;color:var(--muted);margin-top:6px;line-height:1.45}
   .distbtn{background:var(--card2);border:1px solid var(--line);color:var(--txt);border-radius:8px;
     padding:7px 13px;font-size:13.5px;font-family:inherit;cursor:pointer}
   .distbtn.active{border-color:var(--accent2);color:var(--accent2)}
@@ -79,14 +87,6 @@
     <div class="sub">Calculateur d'allure course à pied</div>
   </header>
 
-  <h2>Tes performances récentes</h2>
-  <div class="card">
-    <div id="perfs"></div>
-    <button class="add" id="addBtn">+ Ajouter une performance</button>
-    <p class="hint">Une distance déjà réalisée + ton temps. Les perfs datées de 12 mois ou moins par rapport à la plus
-      récente sont moyennées ; les plus anciennes sont ignorées. Ces perfs calibrent tes zones d'entraînement.</p>
-  </div>
-
   <h2>Ton profil</h2>
   <div class="card">
     <label for="hybridProfile" style="display:block;font-size:12.5px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:6px;">Choisis ton profil</label>
@@ -98,6 +98,14 @@
     <p class="hint">Influence tes allures easy/récup (un profil orienté force doit courir plus lentement qu'un
       coureur pur pour rester dans la bonne zone, à score de forme égal) et, en l'absence de Hyrox mesuré,
       affine la fourchette de "taxe de fatigue" estimée sur le race pace.</p>
+  </div>
+
+  <h2>Tes performances récentes</h2>
+  <div class="card">
+    <div id="perfs"></div>
+    <button class="add" id="addBtn">+ Ajouter une performance</button>
+    <p class="hint">Une distance déjà réalisée + ton temps. Les perfs datées de 12 mois ou moins par rapport à la plus
+      récente sont moyennées ; les plus anciennes sont ignorées. Ces perfs calibrent tes zones d'entraînement.</p>
   </div>
 
   <h2>Ton dernier Hyrox <span style="text-transform:none;letter-spacing:0;font-weight:400;color:var(--muted)">(optionnel)</span></h2>
@@ -116,10 +124,7 @@
     <h2>Allures d'entraînement</h2>
     <div class="card">
       <div style="margin-bottom:10px">Référence estimée (~1h à allure seuil) : <span class="ref" id="ref5k"></span></div>
-      <table>
-        <thead><tr><th>Allure</th><th class="num">min/km</th><th>Usage</th></tr></thead>
-        <tbody id="allures"></tbody>
-      </table>
+      <div id="allures"></div>
       <p class="hint" style="margin-top:10px;">La FC varie beaucoup d'une personne à l'autre - le %FCmax indiqué est un repère théorique (équation de
         Swain), pas une mesure individuelle. La référence la plus fiable reste ta FC seuil mesurée sur le terrain
         (test CLM 30 min), pas un %FCmax de montre. Sur very hard et fast, la FC réagit avec retard : pilote au
@@ -405,10 +410,14 @@ document.getElementById("calcBtn").onclick=function(){
   // en secondes/km (un nombre de secondes/km plus grand = plus lent).
   allures.sort(function(a,b){ return (b.lo+b.hi) - (a.lo+a.hi); });
   document.getElementById("allures").innerHTML=allures.map(function(a){
-    var paceStr = fmtPace(a.lo)+" - "+fmtPace(a.hi);
+    var paceStr = fmtPace(a.lo)+" - "+fmtPace(a.hi)+" /km";
     var repere = repereStr(a.lo, a.hi, vdot, a.hrNotRel) + (a.rpeSuffix || "");
-    return '<tr><td class="allure">'+a.n+'<span class="'+a.cls+'">'+a.tag+'</span></td>'+
-      '<td class="num">'+paceStr+'<div class="repere">'+repere+'</div></td><td class="def">'+a.use+'</td></tr>';
+    return '<div class="pace-card">'+
+      '<div class="pace-card-head"><span class="pace-name">'+a.n+'</span><span class="'+a.cls+'">'+a.tag+'</span></div>'+
+      '<div class="pace-range">'+paceStr+'</div>'+
+      '<div class="pace-repere">'+repere+'</div>'+
+      '<div class="pace-use">'+a.use+'</div>'+
+    '</div>';
   }).join("");
 
   var diag=document.getElementById("diag"), note=document.getElementById("raceNote");
