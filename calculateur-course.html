@@ -130,12 +130,6 @@
     </div>
     <p class="hint">Ton allure moyenne de course sur un Hyrox passé (temps de course total / 8 km). Sert uniquement à
       caler ton race pace réel et à mesurer la taxe de fatigue - elle ne touche pas tes zones d'entraînement.</p>
-    <select id="raceFormat" style="margin-top:10px;">
-      <option value="solo">Solo</option>
-      <option value="doubles">Doubles / Mixed</option>
-    </select>
-    <p class="hint">Le format influence la taxe de fatigue estimée (uniquement si aucun Hyrox n'est mesuré
-      ci-dessus) : le doubles dégrade moins que le solo, le partenaire couvrant du temps de vraie récupération.</p>
     <button class="go" id="calcBtn">Calculer mes allures</button>
     <p class="hint" id="dateError" style="display:none;color:var(--accent);font-weight:600;">Ajoute une date à chaque performance renseignée : sans ça, impossible de savoir laquelle est la plus récente pour la moyenne.</p>
   </div>
@@ -399,8 +393,7 @@ function collectState(){
     }),
     hxPace:document.getElementById("hxPace").value,
     hxDate:document.getElementById("hxDate").value,
-    profile:document.getElementById("hybridProfile").value,
-    raceFormat:document.getElementById("raceFormat").value
+    profile:document.getElementById("hybridProfile").value
   };
 }
 function saveState(){ try{ localStorage.setItem(STORE_KEY, JSON.stringify(collectState())); }catch(e){} }
@@ -440,7 +433,6 @@ if(savedState){
   document.getElementById("hxPace").value=savedState.hxPace||"";
   document.getElementById("hxDate").value=savedState.hxDate||"";
   if(savedState.profile) document.getElementById("hybridProfile").value=savedState.profile;
-  if(savedState.raceFormat) document.getElementById("raceFormat").value=savedState.raceFormat;
   wireDateHint(document.getElementById("hxDate"));
 }
 perfsEl.addEventListener("input", saveState);
@@ -448,7 +440,6 @@ perfsEl.addEventListener("change", saveState);
 document.getElementById("hxPace").addEventListener("input", saveState);
 document.getElementById("hxDate").addEventListener("change", saveState);
 document.getElementById("hybridProfile").addEventListener("change", saveState);
-document.getElementById("raceFormat").addEventListener("change", saveState);
 
 // ============ Calcul ============
 document.getElementById("calcBtn").onclick=function(){
@@ -517,21 +508,24 @@ document.getElementById("calcBtn").onclick=function(){
   var pEasyS=paceFromVdot(vdot,FRAC.easySlow-adj);
 
   // race pace : fourchette bornée par la capacité fraîche et, si dispo, l'Hyrox mesuré
-  var raceRow;
+  var raceRows;
   var raceRpeNote = " (ressenti reel plus eleve qu'a froid : sortie de station, pas un effort isole)";
   if(hyroxOnly){
-    raceRow={n:"race pace", tag:"seule ref.", cls:"pill", lo:hxPace-5, hi:hxPace+5, rpeSuffix:raceRpeNote,
-      use:"Ton seul Hyrox connu, utilise comme base de tout le calcul. Pas de comparaison possible sans une performance de course independante."};
+    raceRows=[{n:"race pace", tag:"seule ref.", cls:"pill", lo:hxPace-5, hi:hxPace+5, rpeSuffix:raceRpeNote,
+      use:"Ton seul Hyrox connu, utilise comme base de tout le calcul. Pas de comparaison possible sans une performance de course independante."}];
   } else if(hxPace){
-    raceRow={n:"race pace", tag:"mesuré", cls:"pill meas", lo:hxPace-5, hi:hxPace+5, rpeSuffix:raceRpeNote,
-      use:"Ta vraie allure de course en Hyrox, mesurée (± marge jour de course). C'est ta reference la plus fiable pour t'entrainer - le modele theorique 'a froid' est deja compare dans le diagnostic ci-dessous."};
+    raceRows=[{n:"race pace", tag:"mesuré", cls:"pill meas", lo:hxPace-5, hi:hxPace+5, rpeSuffix:raceRpeNote,
+      use:"Ta vraie allure de course en Hyrox, mesurée (± marge jour de course). C'est ta reference la plus fiable pour t'entrainer - le modele theorique 'a froid' est deja compare dans le diagnostic ci-dessous."}];
   } else {
     var profile=currentProfile();
     var tax=TAX_BY_PROFILE[profile]||TAX_BY_PROFILE.force;
-    var fmtMult=TAX_FORMAT_MULT[document.getElementById("raceFormat").value]||1;
-    var taxLow=tax.low*fmtMult, taxHigh=tax.high*fmtMult;
-    raceRow={n:"race pace", tag:"estimé", cls:"pill", lo:pHard+taxLow, hi:pHard+taxHigh, rpeSuffix:raceRpeNote,
-      use:"Base sur ton allure seuil (S2) a froid + une taxe de fatigue estimee selon ton profil et ton format. La taxe reelle peut differer : encode un Hyrox pour la caler sur du réel."};
+    // Deux estimations distinctes, solo et doubles, plutot qu'un choix a faire : le partenaire en
+    // doubles change reellement la donne (voir TAX_FORMAT_MULT), autant montrer les deux d'un coup.
+    raceRows=[["solo","Solo"],["doubles","Doubles / Mixed"]].map(function(f){
+      var mult=TAX_FORMAT_MULT[f[0]];
+      return {n:"race pace ("+f[1]+")", tag:"estimé", cls:"pill", lo:pHard+tax.low*mult, hi:pHard+tax.high*mult, rpeSuffix:raceRpeNote,
+        use:"Base sur ton allure seuil (S2) a froid + une taxe de fatigue estimee selon ton profil, pour un format "+f[1].toLowerCase()+". La taxe reelle peut differer : encode un Hyrox pour la caler sur du réel."};
+    });
   }
 
   var allures=[
@@ -539,9 +533,8 @@ document.getElementById("calcBtn").onclick=function(){
     {n:"tempo", tag:"Z3 / M", cls:"pill", lo:paceFromVdot(vdot,mPct(vdot))-5, hi:paceFromVdot(vdot,mPct(vdot))+5, use:"Allure soutenue continue, a froid (hors contexte Hyrox). Blocs tempo 15-30 min, allure semi/marathon."},
     {n:"hard", tag:"T / seuil", cls:"pill", lo:pHard-4, hi:pHard+4, use:"Comfortably hard. Blocs longs (1600 m, 5000 m)."},
     {n:"very hard", tag:"I / VO2max", cls:"pill", lo:paceFromVdot(vdot,1.00)-4, hi:paceFromVdot(vdot,1.00)+4, hrNotRel:true, use:"L'allure la plus dure. Fractions 3-5 min, ça pique. Récup active entre les fractions : au jog (rythme qui permet de récupérer sans marcher), jamais à l'arrêt complet."},
-    {n:"fast", tag:"R / reps", cls:"pill", lo:paceFromVdot(vdot,FRAC.fast)-4, hi:paceFromVdot(vdot,FRAC.fast)+4, hrNotRel:true, use:"Très rapide, foulées et sensations propres (200-400 m). Récup complète au jog entre les fractions, doit ressortir léger."},
-    raceRow
-  ];
+    {n:"fast", tag:"R / reps", cls:"pill", lo:paceFromVdot(vdot,FRAC.fast)-4, hi:paceFromVdot(vdot,FRAC.fast)+4, hrNotRel:true, use:"Très rapide, foulées et sensations propres (200-400 m). Récup complète au jog entre les fractions, doit ressortir léger."}
+  ].concat(raceRows);
   // Plus lent (haut) -> plus rapide (bas) : tri par allure moyenne de chaque fourchette, decroissant
   // en secondes/km (un nombre de secondes/km plus grand = plus lent).
   allures.sort(function(a,b){ return (b.lo+b.hi) - (a.lo+a.hi); });
