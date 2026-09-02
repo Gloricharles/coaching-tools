@@ -130,6 +130,12 @@
     </div>
     <p class="hint">Ton allure moyenne de course sur un Hyrox passé (temps de course total / 8 km). Sert uniquement à
       caler ton race pace réel et à mesurer la taxe de fatigue - elle ne touche pas tes zones d'entraînement.</p>
+    <select id="raceFormat" style="margin-top:10px;">
+      <option value="solo">Solo</option>
+      <option value="doubles">Doubles / Mixed</option>
+    </select>
+    <p class="hint">Le format influence la taxe de fatigue estimée (uniquement si aucun Hyrox n'est mesuré
+      ci-dessus) : le doubles dégrade moins que le solo, le partenaire couvrant du temps de vraie récupération.</p>
     <button class="go" id="calcBtn">Calculer mes allures</button>
     <p class="hint" id="dateError" style="display:none;color:var(--accent);font-weight:600;">Ajoute une date à chaque performance renseignée : sans ça, impossible de savoir laquelle est la plus récente pour la moyenne.</p>
   </div>
@@ -251,6 +257,11 @@ var TAX_BY_PROFILE = {
   runner: {low:15, high:45},
   force:  {low:20, high:55}
 };
+// Le format influence aussi la taxe de fatigue, independamment du profil hybride : en doubles, le
+// partenaire couvre du temps de vraie recuperation que le solo n'a jamais. Roxmetric (meme source
+// que ci-dessus) mesure une degradation de course plus faible en doubles qu'en solo, jusqu'a
+// environ 6% d'ecart aux allures recreatives.
+var TAX_FORMAT_MULT = { solo:1.0, doubles:0.6 };
 var DISTS = [
   {m:1000,label:"1 km"},{m:1500,label:"1,5 km"},{m:3000,label:"3 km"},
   {m:5000,label:"5 km"},{m:10000,label:"10 km"},{m:15000,label:"15 km"},{m:21097,label:"Semi (21,1 km)"}
@@ -388,7 +399,8 @@ function collectState(){
     }),
     hxPace:document.getElementById("hxPace").value,
     hxDate:document.getElementById("hxDate").value,
-    profile:document.getElementById("hybridProfile").value
+    profile:document.getElementById("hybridProfile").value,
+    raceFormat:document.getElementById("raceFormat").value
   };
 }
 function saveState(){ try{ localStorage.setItem(STORE_KEY, JSON.stringify(collectState())); }catch(e){} }
@@ -428,6 +440,7 @@ if(savedState){
   document.getElementById("hxPace").value=savedState.hxPace||"";
   document.getElementById("hxDate").value=savedState.hxDate||"";
   if(savedState.profile) document.getElementById("hybridProfile").value=savedState.profile;
+  if(savedState.raceFormat) document.getElementById("raceFormat").value=savedState.raceFormat;
   wireDateHint(document.getElementById("hxDate"));
 }
 perfsEl.addEventListener("input", saveState);
@@ -435,6 +448,7 @@ perfsEl.addEventListener("change", saveState);
 document.getElementById("hxPace").addEventListener("input", saveState);
 document.getElementById("hxDate").addEventListener("change", saveState);
 document.getElementById("hybridProfile").addEventListener("change", saveState);
+document.getElementById("raceFormat").addEventListener("change", saveState);
 
 // ============ Calcul ============
 document.getElementById("calcBtn").onclick=function(){
@@ -514,8 +528,10 @@ document.getElementById("calcBtn").onclick=function(){
   } else {
     var profile=currentProfile();
     var tax=TAX_BY_PROFILE[profile]||TAX_BY_PROFILE.force;
-    raceRow={n:"race pace", tag:"estimé", cls:"pill", lo:pHard+tax.low, hi:pHard+tax.high, rpeSuffix:raceRpeNote,
-      use:"Base sur ton allure seuil (S2) a froid + une taxe de fatigue estimee selon ton profil hybride. La taxe reelle peut differer : encode un Hyrox pour la caler sur du réel."};
+    var fmtMult=TAX_FORMAT_MULT[document.getElementById("raceFormat").value]||1;
+    var taxLow=tax.low*fmtMult, taxHigh=tax.high*fmtMult;
+    raceRow={n:"race pace", tag:"estimé", cls:"pill", lo:pHard+taxLow, hi:pHard+taxHigh, rpeSuffix:raceRpeNote,
+      use:"Base sur ton allure seuil (S2) a froid + une taxe de fatigue estimee selon ton profil et ton format. La taxe reelle peut differer : encode un Hyrox pour la caler sur du réel."};
   }
 
   var allures=[
