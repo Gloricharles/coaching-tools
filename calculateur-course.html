@@ -146,6 +146,7 @@
         </div>
       </div>
       <div id="allures"></div>
+      <button type="button" class="allures-toggle" id="exportImgBtn" style="margin-top:10px;">Telecharger en image (pense-bete)</button>
       <p class="hint" style="margin-top:10px;">La FC varie beaucoup d'une personne à l'autre - le %FCmax indiqué est un repère théorique (équation de
         Swain), pas une mesure individuelle. La référence la plus fiable reste ta FC seuil réelle, pas un %FCmax
         de montre. Sur very hard et fast, la FC réagit avec retard : pilote au chrono, pas au cardio.</p>
@@ -615,6 +616,60 @@ document.getElementById("convKmh").addEventListener("input", function(){
   var paceField=document.getElementById("convPaceKmh");
   paceField.value = (kmh && kmh>0) ? fmtPace(3600/kmh) : "";
 });
+
+// ============ Export image (pense-bete) ============
+// Dessine directement le contenu sur un canvas plutot que de capturer le DOM : plus fiable,
+// pas de dependance externe, fond clair adapte a l'impression.
+function decodeEntities(s){ return s.replace(/&middot;/g,"\u00b7").replace(/&mdash;/g,"\u2014").replace(/<[^>]+>/g,""); }
+function exportImage(){
+  if(!lastAllures) return;
+  var W=800, rowH=100, headerH=150, footerH=55;
+  var H=headerH + lastAllures.length*rowH + footerH;
+  var canvas=document.createElement("canvas");
+  canvas.width=W; canvas.height=H;
+  var ctx=canvas.getContext("2d");
+
+  ctx.fillStyle="#FFFFFF"; ctx.fillRect(0,0,W,H);
+  ctx.fillStyle="#1E1B18"; ctx.font="bold 28px -apple-system, Helvetica, sans-serif";
+  ctx.fillText("Allures d'entrainement", 30, 48);
+  var today=new Date();
+  var dateStr=String(today.getDate()).padStart(2,"0")+"/"+String(today.getMonth()+1).padStart(2,"0")+"/"+today.getFullYear();
+  ctx.fillStyle="#6E6459"; ctx.font="14px -apple-system, Helvetica, sans-serif";
+  ctx.fillText("Genere le "+dateStr+" - unite : "+(currentUnit==="kmh"?"km/h":"min/km"), 30, 72);
+  ctx.strokeStyle="#E0DCD4"; ctx.beginPath(); ctx.moveTo(30,100); ctx.lineTo(W-30,100); ctx.stroke();
+
+  var y=headerH;
+  lastAllures.forEach(function(a){
+    var paceStr = currentUnit==="kmh" ? fmtKmh(a.hi)+" - "+fmtKmh(a.lo) : fmtPace(a.lo)+" - "+fmtPace(a.hi)+" /km";
+    var repere = decodeEntities(repereStr(a.lo, a.hi, lastVdot, a.hrNotRel));
+
+    ctx.fillStyle="#E15241"; ctx.fillRect(30, y-28, 4, 66);
+
+    ctx.fillStyle="#1E1B18"; ctx.font="bold 20px -apple-system, Helvetica, sans-serif";
+    ctx.fillText(a.n, 50, y-6);
+    ctx.fillStyle="#8A8175"; ctx.font="13px -apple-system, Helvetica, sans-serif";
+    ctx.fillText(a.tag.replace(/<[^>]+>/g,""), 50, y+12);
+
+    ctx.fillStyle="#1E1B18"; ctx.font="bold 26px -apple-system, Helvetica, sans-serif"; ctx.textAlign="right";
+    ctx.fillText(paceStr, W-30, y-2);
+    ctx.textAlign="left";
+
+    ctx.fillStyle="#0F8074"; ctx.font="13px -apple-system, Helvetica, sans-serif";
+    ctx.fillText(repere, 50, y+32);
+
+    y += rowH;
+    if(y < H-footerH){ ctx.strokeStyle="#EFEBE3"; ctx.beginPath(); ctx.moveTo(30,y-48); ctx.lineTo(W-30,y-48); ctx.stroke(); }
+  });
+
+  ctx.fillStyle="#B0A89A"; ctx.font="12px -apple-system, Helvetica, sans-serif";
+  ctx.fillText("Beglorious - estimation a titre indicatif, a affiner au ressenti terrain.", 30, H-22);
+
+  var link=document.createElement("a");
+  link.download="allures-entrainement.png";
+  link.href=canvas.toDataURL("image/png");
+  link.click();
+}
+document.getElementById("exportImgBtn").addEventListener("click", exportImage);
 </script>
 </body>
 </html>
