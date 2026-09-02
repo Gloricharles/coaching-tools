@@ -34,8 +34,9 @@
   input[type="date"]{-webkit-appearance:auto;appearance:auto;color-scheme:dark}
   .date-field{position:relative}
   .date-field input[type="date"]{width:100%;position:relative;z-index:1}
-  .date-hint{position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--muted);
-    font-size:15px;pointer-events:none;z-index:0}
+  .date-hint{position:absolute;inset:0;display:flex;align-items:center;padding-left:11px;
+    color:var(--muted);font-size:15px;pointer-events:none;z-index:2;
+    background:var(--card2);border:1px solid var(--line);border-radius:9px;box-sizing:border-box}
   .date-field.has-value .date-hint{display:none}
   select:focus,input:focus{outline:none;border-color:var(--accent)}
   input::placeholder{color:var(--muted)}
@@ -392,6 +393,10 @@ function collectState(){
 function saveState(){ try{ localStorage.setItem(STORE_KEY, JSON.stringify(collectState())); }catch(e){} }
 function loadState(){ try{ var r=localStorage.getItem(STORE_KEY); return r?JSON.parse(r):null; }catch(e){ return null; } }
 
+function todayISO(){
+  var d=new Date();
+  return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
+}
 function addPerf(sel, time, date){
   var row=document.createElement("div"); row.className="perf";
   row.innerHTML='<select class="dist">'+optionHtml(sel||5000)+'</select>'+
@@ -402,7 +407,14 @@ function addPerf(sel, time, date){
   perfsEl.appendChild(row);
   wireDateHint(row.querySelector(".date-input"));
 }
-document.getElementById("addBtn").onclick=function(){ addPerf(); saveState(); };
+document.getElementById("addBtn").onclick=function(){
+  // Nouvelle ligne prete a l'emploi : date du jour par defaut, meme distance que la derniere
+  // ligne existante (utile pour un test recurrent sur la meme distance chaque semaine).
+  var rows=[].slice.call(perfsEl.children);
+  var lastDist=rows.length ? rows[rows.length-1].querySelector(".dist").value : 5000;
+  addPerf(+lastDist||5000, "", todayISO());
+  saveState();
+};
 
 var savedState=loadState();
 if(savedState && savedState.perfs && savedState.perfs.length){
