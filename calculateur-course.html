@@ -32,6 +32,11 @@
   select{background-image:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%23A99E92" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>');
     background-repeat:no-repeat;background-position:right 12px center;background-size:16px;padding-right:38px;cursor:pointer}
   input[type="date"]{-webkit-appearance:auto;appearance:auto;color-scheme:dark}
+  .date-field{position:relative}
+  .date-field input[type="date"]{width:100%;position:relative;z-index:1}
+  .date-hint{position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--muted);
+    font-size:15px;pointer-events:none;z-index:0}
+  .date-field.has-value .date-hint{display:none}
   select:focus,input:focus{outline:none;border-color:var(--accent)}
   input::placeholder{color:var(--muted)}
   .rm{background:transparent;border:none;color:var(--muted);font-size:20px;cursor:pointer;padding:6px;line-height:1}
@@ -120,7 +125,7 @@
   <div class="card">
     <div class="hyrox">
       <input id="hxPace" placeholder="Allure moy. course (mm:ss / km)">
-      <input id="hxDate" type="date" placeholder="jj/mm/aaaa">
+      <div class="date-field"><input id="hxDate" type="date"><span class="date-hint">jj/mm/aaaa</span></div>
     </div>
     <p class="hint">Ton allure moyenne de course sur un Hyrox passé (temps de course total / 8 km). Sert uniquement à
       caler ton race pace réel et à mesurer la taxe de fatigue - elle ne touche pas tes zones d'entraînement.</p>
@@ -362,23 +367,67 @@ var perfsEl=document.getElementById("perfs");
 function optionHtml(sel){
   return OPTIONS.map(function(o){return '<option value="'+o.m+'"'+(o.m===sel?' selected':'')+'>'+o.label+'</option>';}).join("");
 }
-function addPerf(sel){
+function wireDateHint(input){
+  var wrap=input.closest(".date-field");
+  if(!wrap) return;
+  function upd(){ wrap.classList.toggle("has-value", !!input.value); }
+  input.addEventListener("input", upd);
+  input.addEventListener("change", upd);
+  upd();
+}
+
+// ============ Persistance (localStorage) ============
+// Objectif : ne jamais avoir a resaisir ses chronos a chaque visite.
+var STORE_KEY="beglorious_course_calc";
+function collectState(){
+  return {
+    perfs:[].slice.call(perfsEl.children).map(function(row){
+      return { dist:row.querySelector(".dist").value, time:row.querySelector(".time").value, date:row.querySelector(".date-input").value };
+    }),
+    hxPace:document.getElementById("hxPace").value,
+    hxDate:document.getElementById("hxDate").value,
+    profile:document.getElementById("hybridProfile").value
+  };
+}
+function saveState(){ try{ localStorage.setItem(STORE_KEY, JSON.stringify(collectState())); }catch(e){} }
+function loadState(){ try{ var r=localStorage.getItem(STORE_KEY); return r?JSON.parse(r):null; }catch(e){ return null; } }
+
+function addPerf(sel, time, date){
   var row=document.createElement("div"); row.className="perf";
   row.innerHTML='<select class="dist">'+optionHtml(sel||5000)+'</select>'+
-    '<input class="time" placeholder="mm:ss">'+
-    '<input class="date" type="date" placeholder="jj/mm/aaaa">'+
+    '<input class="time" placeholder="mm:ss" value="'+(time?String(time).replace(/"/g,""):"")+'">'+
+    '<div class="date date-field"><input type="date" class="date-input" value="'+(date||"")+'"><span class="date-hint">jj/mm/aaaa</span></div>'+
     '<button class="rm" title="Retirer">&times;</button>';
-  row.querySelector(".rm").onclick=function(){ if(perfsEl.children.length>1) row.remove(); };
+  row.querySelector(".rm").onclick=function(){ if(perfsEl.children.length>1){ row.remove(); saveState(); } };
   perfsEl.appendChild(row);
+  wireDateHint(row.querySelector(".date-input"));
 }
-document.getElementById("addBtn").onclick=function(){addPerf();};
-addPerf(5000);
+document.getElementById("addBtn").onclick=function(){ addPerf(); saveState(); };
+
+var savedState=loadState();
+if(savedState && savedState.perfs && savedState.perfs.length){
+  savedState.perfs.forEach(function(p){ addPerf(+p.dist||5000, p.time, p.date); });
+} else {
+  addPerf(5000);
+}
+wireDateHint(document.getElementById("hxDate"));
+if(savedState){
+  document.getElementById("hxPace").value=savedState.hxPace||"";
+  document.getElementById("hxDate").value=savedState.hxDate||"";
+  if(savedState.profile) document.getElementById("hybridProfile").value=savedState.profile;
+  wireDateHint(document.getElementById("hxDate"));
+}
+perfsEl.addEventListener("input", saveState);
+perfsEl.addEventListener("change", saveState);
+document.getElementById("hxPace").addEventListener("input", saveState);
+document.getElementById("hxDate").addEventListener("change", saveState);
+document.getElementById("hybridProfile").addEventListener("change", saveState);
 
 // ============ Calcul ============
 document.getElementById("calcBtn").onclick=function(){
   var rows=[].slice.call(perfsEl.children), perfs=[];
   rows.forEach(function(r){
-    var d=+r.querySelector(".dist").value, t=parseTime(r.querySelector(".time").value), dt=r.querySelector(".date").value;
+    var d=+r.querySelector(".dist").value, t=parseTime(r.querySelector(".time").value), dt=r.querySelector(".date-input").value;
     if(d&&t) perfs.push({d:d,t:t,date:dt?new Date(dt):null});
   });
 
