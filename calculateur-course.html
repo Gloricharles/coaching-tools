@@ -121,8 +121,14 @@
       <input id="hxPace" placeholder="Allure moy. course (mm:ss / km)">
       <input id="hxDate" type="text" class="date-input" inputmode="numeric" placeholder="jj/mm/aaaa" maxlength="10">
     </div>
+    <select id="hxFormat" style="margin-top:10px;">
+      <option value="solo">Ce Hyrox etait en Solo</option>
+      <option value="doubles">Ce Hyrox etait en Doubles / Mixed</option>
+    </select>
     <p class="hint">Ton allure moyenne de course sur un Hyrox passé (temps de course total / 8 km). Sert uniquement à
-      caler ton race pace réel et à mesurer la taxe de fatigue - elle ne touche pas tes zones d'entraînement.</p>
+      caler ton race pace réel et à mesurer la taxe de fatigue - elle ne touche pas tes zones d'entraînement.
+      Le format sert aussi à dériver une estimation pour l'autre format (plus précise qu'une estimation à l'aveugle,
+      puisque calée sur ta vraie donnée).</p>
     <button class="go" id="calcBtn">Calculer mes allures</button>
     <p class="hint" id="dateError" style="display:none;color:var(--accent);font-weight:600;">Ajoute une date à chaque performance renseignée : sans ça, impossible de savoir laquelle est la plus récente pour la moyenne.</p>
   </div>
@@ -408,6 +414,7 @@ function collectState(){
     }),
     hxPace:document.getElementById("hxPace").value,
     hxDate:document.getElementById("hxDate").value,
+    hxFormat:document.getElementById("hxFormat").value,
     profile:document.getElementById("hybridProfile").value
   };
 }
@@ -447,8 +454,10 @@ wireDateMask(document.getElementById("hxDate"));
 if(savedState){
   document.getElementById("hxPace").value=savedState.hxPace||"";
   document.getElementById("hxDate").value=toFRDisplay(savedState.hxDate);
+  if(savedState.hxFormat) document.getElementById("hxFormat").value=savedState.hxFormat;
   if(savedState.profile) document.getElementById("hybridProfile").value=savedState.profile;
 }
+document.getElementById("hxFormat").addEventListener("change", saveState);
 perfsEl.addEventListener("input", saveState);
 perfsEl.addEventListener("change", saveState);
 document.getElementById("hxPace").addEventListener("input", saveState);
@@ -528,8 +537,17 @@ document.getElementById("calcBtn").onclick=function(){
     raceRows=[{n:"race pace", tag:"seule ref.", cls:"pill", lo:hxPace-5, hi:hxPace+5, rpeSuffix:raceRpeNote,
       use:"Ton seul Hyrox connu, utilise comme base de tout le calcul. Pas de comparaison possible sans une performance de course independante."}];
   } else if(hxPace){
-    raceRows=[{n:"race pace", tag:"mesuré", cls:"pill meas", lo:hxPace-5, hi:hxPace+5, rpeSuffix:raceRpeNote,
-      use:"Ta vraie allure de course en Hyrox, mesurée (± marge jour de course). C'est ta reference la plus fiable pour t'entrainer - le modele theorique 'a froid' est deja compare dans le diagnostic ci-dessous."}];
+    var measFmt=document.getElementById("hxFormat").value;
+    var otherFmt=measFmt==="solo"?"doubles":"solo";
+    var FMT_LABEL={solo:"Solo", doubles:"Doubles / Mixed"};
+    var measuredTax=hxPace-pHard;
+    var derivedTax=measuredTax*(TAX_FORMAT_MULT[otherFmt]/TAX_FORMAT_MULT[measFmt]);
+    raceRows=[
+      {n:"race pace ("+FMT_LABEL[measFmt]+")", tag:"mesuré", cls:"pill meas", lo:hxPace-5, hi:hxPace+5, rpeSuffix:raceRpeNote,
+        use:"Ta vraie allure de course en Hyrox, mesurée (± marge jour de course), en "+FMT_LABEL[measFmt].toLowerCase()+". C'est ta reference la plus fiable pour t'entrainer - le modele theorique 'a froid' est deja compare dans le diagnostic ci-dessous."},
+      {n:"race pace ("+FMT_LABEL[otherFmt]+")", tag:"dérivé", cls:"pill", lo:pHard+derivedTax-5, hi:pHard+derivedTax+5, rpeSuffix:raceRpeNote,
+        use:"Estimation pour le format "+FMT_LABEL[otherFmt].toLowerCase()+", deduite de ta taxe de fatigue reellement mesuree en "+FMT_LABEL[measFmt].toLowerCase()+". Plus fiable qu'une estimation a l'aveugle, mais reste une derivation, pas une mesure directe dans ce format."}
+    ];
   } else {
     var profile=currentProfile();
     var tax=TAX_BY_PROFILE[profile]||TAX_BY_PROFILE.force;
