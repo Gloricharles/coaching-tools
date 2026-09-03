@@ -52,6 +52,13 @@
   .pace-card:last-child{border-bottom:none;padding-bottom:0}
   .pace-card-head{display:flex;align-items:baseline;justify-content:space-between;gap:8px}
   .pace-name{font-weight:700;font-size:14.5px;white-space:nowrap;display:flex;align-items:baseline;gap:6px}
+  .zone-badge{padding:2px 8px;border-radius:6px;color:#14110D;font-weight:800}
+  .zone-easy{background:#6FA8DC}
+  .zone-tempo{background:#5BC2A0}
+  .zone-hard{background:#E8923E}
+  .zone-veryhard{background:#E0483F}
+  .zone-fast{background:#E93D82;color:#14110D}
+  .zone-race{background:#B98CE0}
   .pace-chevron{color:var(--muted);font-size:11px;transition:transform .15s;display:inline-block}
   .pace-card.open .pace-chevron{transform:rotate(90deg)}
   .pace-range{font-size:17px;font-weight:800;font-variant-numeric:tabular-nums;white-space:nowrap;color:var(--txt)}
@@ -221,6 +228,19 @@ var PROFILE_ADJUST = {
   hybrid: 0.02,
   force:  0.05
 };
+// Ajustements de tempo (T1) et seuil/hard (T2) par profil, cette fois bases sur une source chiffree
+// (Upside Strength, "Endurance Physiology Cheat Sheet") qui donne des fourchettes %VO2max distinctes
+// pour profil Endurant vs Powerful : T1 Endurant 70-85%, T1 Powerful 50-70% (large ecart, ~17-20 pts).
+// "runner" correspond a peu pres a Endurant (mon calcul tempo dynamique tombe deja dans cette
+// fourchette sans ajustement), "force" a Powerful.
+var TEMPO_ADJUST = { runner:0, hybrid:0.08, force:0.15 };
+// Meme logique tentee pour le seuil (T2), mais retiree apres verification : seule la fourchette
+// Endurant (85-95%) est lisible dans le document, aucune fourchette Powerful fiable pour la
+// comparer. Sans donnee validee pour justifier un ecart specifique par profil sur cette zone
+// precise, le seuil reste fixe pour tout le monde plutot que d'extrapoler a l'aveugle.
+var HARD_ADJUST = { runner:0, hybrid:0, force:0 };
+function tempoAdjust(){ return TEMPO_ADJUST[currentProfile()] || 0; }
+function hardAdjust(){ return HARD_ADJUST[currentProfile()] || 0; }
 function currentProfile(){
   var el = document.getElementById("hybridProfile");
   return el ? el.value : "force";
@@ -332,6 +352,24 @@ function fmtTime(sec){
 }
 function fmtPace(sp){ var m=Math.floor(sp/60), s=Math.round(sp%60); if(s===60){m++;s=0;} return m+":"+(s<10?"0":"")+s; }
 function fmtKmh(paceSec){ return (3600/paceSec).toFixed(1)+" km/h"; }
+function zoneClass(name){
+  if(name.indexOf("race pace")===0) return "zone-race";
+  if(name==="easy") return "zone-easy";
+  if(name==="tempo") return "zone-tempo";
+  if(name==="hard") return "zone-hard";
+  if(name==="very hard") return "zone-veryhard";
+  if(name==="fast") return "zone-fast";
+  return "";
+}
+function zoneColorHex(name){
+  if(name.indexOf("race pace")===0) return "#B98CE0";
+  if(name==="easy") return "#6FA8DC";
+  if(name==="tempo") return "#5BC2A0";
+  if(name==="hard") return "#E8923E";
+  if(name==="very hard") return "#E0483F";
+  if(name==="fast") return "#E93D82";
+  return "#E15241";
+}
 var lastAllures=null, lastVdot=null, currentUnit="pace";
 function renderAllureCards(unit){
   if(!lastAllures) return;
@@ -344,7 +382,7 @@ function renderAllureCards(unit){
     var repere = repereStr(a.lo, a.hi, lastVdot, a.hrNotRel) + (a.rpeSuffix || "");
     return '<div class="pace-card">'+
       '<div class="pace-card-head">'+
-        '<span class="pace-name"><span class="pace-chevron">&#9656;</span>'+a.n+'<span class="'+a.cls+'">'+a.tag+'</span></span>'+
+        '<span class="pace-name"><span class="pace-chevron">&#9656;</span><span class="zone-badge '+zoneClass(a.n)+'">'+a.n+'</span><span class="'+a.cls+'">'+a.tag+'</span></span>'+
         '<span class="pace-range">'+paceStr+'</span>'+
       '</div>'+
       '<div class="pace-sub"><b>'+repere+'</b> &mdash; '+a.use+'</div>'+
@@ -524,8 +562,8 @@ document.getElementById("calcBtn").onclick=function(){
   });
   var vdot=weightedSum/totalWeight;
 
-  var pHard=paceFromVdot(vdot,FRAC.hard);
-  var vHard=vFromVo2(FRAC.hard*vdot); // vitesse au seuil, m/min
+  var pHard=paceFromVdot(vdot,FRAC.hard-hardAdjust());
+  var vHard=vFromVo2((FRAC.hard-hardAdjust())*vdot); // vitesse au seuil, m/min
   var distHard=(vHard*60)/1000; // distance parcourue en ~1h a cette allure, km
   document.getElementById("ref5k").textContent=distHard.toFixed(1)+" km  ("+fmtPace(pHard)+"/km)"+(hyroxOnly?"  (estimation degradee)":"");
 
@@ -565,7 +603,7 @@ document.getElementById("calcBtn").onclick=function(){
 
   var allures=[
     {n:"easy", tag:"base", cls:"pill", lo:pEasyF, hi:pEasyS, use:"Course facile, conversationnelle. Base aérobie."},
-    {n:"tempo", tag:"Z3 / M", cls:"pill", lo:paceFromVdot(vdot,mPct(vdot))-5, hi:paceFromVdot(vdot,mPct(vdot))+5, use:"Allure soutenue continue, a froid (hors contexte Hyrox). Blocs tempo 15-30 min, allure semi/marathon."},
+    {n:"tempo", tag:"Z3 / M", cls:"pill", lo:paceFromVdot(vdot,mPct(vdot)-tempoAdjust())-5, hi:paceFromVdot(vdot,mPct(vdot)-tempoAdjust())+5, use:"Allure soutenue continue, a froid (hors contexte Hyrox). Blocs tempo 15-30 min, allure semi/marathon."},
     {n:"hard", tag:"T / seuil", cls:"pill", lo:pHard-4, hi:pHard+4, use:"Comfortably hard. Blocs longs (1600 m, 5000 m)."},
     {n:"very hard", tag:"I / VO2max", cls:"pill", lo:paceFromVdot(vdot,1.00)-4, hi:paceFromVdot(vdot,1.00)+4, hrNotRel:true, use:"L'allure la plus dure. Fractions 3-5 min, ça pique. Récup active entre les fractions : au jog (rythme qui permet de récupérer sans marcher), jamais à l'arrêt complet."},
     {n:"fast", tag:"R / reps", cls:"pill", lo:paceFromVdot(vdot,FRAC.fast)-4, hi:paceFromVdot(vdot,FRAC.fast)+4, hrNotRel:true, use:"Très rapide, foulées et sensations propres (200-400 m). Récup complète au jog entre les fractions, doit ressortir léger."}
@@ -687,7 +725,7 @@ function exportImage(){
     var paceStr = currentUnit==="kmh" ? fmtKmh(a.hi)+" - "+fmtKmh(a.lo) : fmtPace(a.lo)+" - "+fmtPace(a.hi)+" /km";
     var repere = decodeEntities(repereStr(a.lo, a.hi, lastVdot, a.hrNotRel));
 
-    ctx.fillStyle="#E15241"; ctx.fillRect(30, y-28, 4, 66);
+    ctx.fillStyle=zoneColorHex(a.n); ctx.fillRect(30, y-28, 4, 66);
 
     ctx.fillStyle="#1E1B18"; ctx.font="bold 20px -apple-system, Helvetica, sans-serif";
     ctx.fillText(a.n, 50, y-6);
