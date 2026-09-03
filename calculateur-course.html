@@ -253,8 +253,11 @@ var TAX_BY_PROFILE = {
 // Le format influence aussi la taxe de fatigue, independamment du profil hybride : en doubles, le
 // partenaire couvre du temps de vraie recuperation que le solo n'a jamais. Roxmetric (meme source
 // que ci-dessus) mesure une degradation de course plus faible en doubles qu'en solo, jusqu'a
-// environ 6% d'ecart aux allures recreatives.
-var TAX_FORMAT_MULT = { solo:1.0, doubles:0.6 };
+// environ 6% d'ecart aux allures recreatives. 0.83 est une reconstruction approximative de ce que
+// ce "6% d'ecart" implique sur la taxe specifiquement (pas une valeur directement publiee pour la
+// taxe elle-meme) : moins agressif que la version precedente (0.6), qui surestimait l'avantage du
+// duo par rapport a ce que la source citee justifie reellement.
+var TAX_FORMAT_MULT = { solo:1.0, doubles:0.83 };
 var DISTS = [
   {m:1000,label:"1 km"},{m:1500,label:"1,5 km"},{m:3000,label:"3 km"},
   {m:5000,label:"5 km"},{m:10000,label:"10 km"},{m:15000,label:"15 km"},{m:21097,label:"Semi (21,1 km)"}
@@ -546,7 +549,7 @@ document.getElementById("calcBtn").onclick=function(){
       {n:"race pace ("+FMT_LABEL[measFmt]+")", tag:"mesuré", cls:"pill meas", lo:hxPace-5, hi:hxPace+5, rpeSuffix:raceRpeNote,
         use:"Ta vraie allure de course en Hyrox, mesurée (± marge jour de course), en "+FMT_LABEL[measFmt].toLowerCase()+". C'est ta reference la plus fiable pour t'entrainer - le modele theorique 'a froid' est deja compare dans le diagnostic ci-dessous."},
       {n:"race pace ("+FMT_LABEL[otherFmt]+")", tag:"dérivé", cls:"pill", lo:pHard+derivedTax-5, hi:pHard+derivedTax+5, rpeSuffix:raceRpeNote,
-        use:"Estimation pour le format "+FMT_LABEL[otherFmt].toLowerCase()+", deduite de ta taxe de fatigue reellement mesuree en "+FMT_LABEL[measFmt].toLowerCase()+". Plus fiable qu'une estimation a l'aveugle, mais reste une derivation, pas une mesure directe dans ce format."}
+        use:"Estimation pour le format "+FMT_LABEL[otherFmt].toLowerCase()+", deduite de ta taxe de fatigue reellement mesuree en "+FMT_LABEL[measFmt].toLowerCase()+". Plus fiable qu'une estimation a l'aveugle, mais reste une derivation basee sur un coefficient d'estimation de coaching/experience (pas une donnee mesuree pour ce format) : des variations plus importantes que sur les autres allures peuvent survenir."}
     ];
   } else {
     var profile=currentProfile();
@@ -556,7 +559,7 @@ document.getElementById("calcBtn").onclick=function(){
     raceRows=[["solo","Solo"],["doubles","Doubles / Mixed"]].map(function(f){
       var mult=TAX_FORMAT_MULT[f[0]];
       return {n:"race pace ("+f[1]+")", tag:"estimé", cls:"pill", lo:pHard+tax.low*mult, hi:pHard+tax.high*mult, rpeSuffix:raceRpeNote,
-        use:"Base sur ton allure seuil (S2) a froid + une taxe de fatigue estimee selon ton profil, pour un format "+f[1].toLowerCase()+". La taxe reelle peut differer : encode un Hyrox pour la caler sur du réel."};
+        use:"Base sur ton allure seuil (S2) a froid + une taxe de fatigue estimee selon ton profil, pour un format "+f[1].toLowerCase()+". Estimation de coaching/experience : des variations plus importantes que sur les autres allures peuvent survenir. Encode un Hyrox pour la caler sur du réel."};
     });
   }
 
