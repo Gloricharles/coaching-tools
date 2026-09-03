@@ -31,13 +31,6 @@
     border-radius:9px;padding:11px 10px;font-size:15px;font-family:inherit;-webkit-appearance:none;appearance:none}
   select{background-image:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%23A99E92" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>');
     background-repeat:no-repeat;background-position:right 12px center;background-size:16px;padding-right:38px;cursor:pointer}
-  input[type="date"]{-webkit-appearance:auto;appearance:auto;color-scheme:dark}
-  .date-field{position:relative}
-  .date-field input[type="date"]{width:100%;position:relative;z-index:1}
-  .date-hint{position:absolute;inset:0;display:flex;align-items:center;padding-left:11px;
-    color:var(--muted);font-size:15px;pointer-events:none;z-index:2;
-    background:var(--card2);border:1px solid var(--line);border-radius:9px;box-sizing:border-box}
-  .date-field.has-value .date-hint{display:none}
   select:focus,input:focus{outline:none;border-color:var(--accent)}
   input::placeholder{color:var(--muted)}
   .rm{background:transparent;border:none;color:var(--muted);font-size:20px;cursor:pointer;padding:6px;line-height:1}
@@ -126,7 +119,7 @@
   <div class="card">
     <div class="hyrox">
       <input id="hxPace" placeholder="Allure moy. course (mm:ss / km)">
-      <div class="date-field"><input id="hxDate" type="date"><span class="date-hint">jj/mm/aaaa</span></div>
+      <input id="hxDate" type="text" class="date-input" inputmode="numeric" placeholder="jj/mm/aaaa" maxlength="10">
     </div>
     <p class="hint">Ton allure moyenne de course sur un Hyrox passé (temps de course total / 8 km). Sert uniquement à
       caler ton race pace réel et à mesurer la taxe de fatigue - elle ne touche pas tes zones d'entraînement.</p>
@@ -374,13 +367,35 @@ var perfsEl=document.getElementById("perfs");
 function optionHtml(sel){
   return OPTIONS.map(function(o){return '<option value="'+o.m+'"'+(o.m===sel?' selected':'')+'>'+o.label+'</option>';}).join("");
 }
-function wireDateHint(input){
-  var wrap=input.closest(".date-field");
-  if(!wrap) return;
-  function upd(){ wrap.classList.toggle("has-value", !!input.value); }
-  input.addEventListener("input", upd);
-  input.addEventListener("change", upd);
-  upd();
+// Masque de saisie : l'utilisateur ne tape que des chiffres, les "/" s'inserent seuls.
+// Fonctionne de facon identique sur tous les appareils/navigateurs (contrairement a
+// input type="date", dont le rendu et le comportement varient trop selon la plateforme).
+function wireDateMask(input){
+  input.addEventListener("input", function(){
+    var digits=input.value.replace(/\D/g,"").slice(0,8);
+    var out=digits;
+    if(digits.length>4) out=digits.slice(0,2)+"/"+digits.slice(2,4)+"/"+digits.slice(4);
+    else if(digits.length>2) out=digits.slice(0,2)+"/"+digits.slice(2);
+    input.value=out;
+  });
+}
+// Accepte jj/mm/aaaa (format courant) et yyyy-mm-dd (ancien format, pour ne pas perdre les
+// dates deja sauvegardees par des utilisateurs avant ce changement).
+function parseDateFR(str){
+  if(!str) return null;
+  var m=str.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  if(m){
+    var day=+m[1], month=+m[2], year=+m[3];
+    if(month<1||month>12||day<1||day>31) return null;
+    return new Date(year, month-1, day);
+  }
+  var m2=str.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if(m2) return new Date(+m2[1], +m2[2]-1, +m2[3]);
+  return null;
+}
+function toFRDisplay(str){
+  var m=str && str.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  return m ? (m[3]+"/"+m[2]+"/"+m[1]) : (str||"");
 }
 
 // ============ Persistance (localStorage) ============
@@ -399,26 +414,26 @@ function collectState(){
 function saveState(){ try{ localStorage.setItem(STORE_KEY, JSON.stringify(collectState())); }catch(e){} }
 function loadState(){ try{ var r=localStorage.getItem(STORE_KEY); return r?JSON.parse(r):null; }catch(e){ return null; } }
 
-function todayISO(){
+function todayFR(){
   var d=new Date();
-  return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
+  return String(d.getDate()).padStart(2,"0")+"/"+String(d.getMonth()+1).padStart(2,"0")+"/"+d.getFullYear();
 }
 function addPerf(sel, time, date){
   var row=document.createElement("div"); row.className="perf";
   row.innerHTML='<select class="dist">'+optionHtml(sel||5000)+'</select>'+
     '<input class="time" placeholder="mm:ss" value="'+(time?String(time).replace(/"/g,""):"")+'">'+
-    '<div class="date date-field"><input type="date" class="date-input" value="'+(date||"")+'"><span class="date-hint">jj/mm/aaaa</span></div>'+
+    '<input class="date date-input" type="text" inputmode="numeric" placeholder="jj/mm/aaaa" maxlength="10" value="'+toFRDisplay(date)+'">'+
     '<button class="rm" title="Retirer">&times;</button>';
   row.querySelector(".rm").onclick=function(){ if(perfsEl.children.length>1){ row.remove(); saveState(); } };
   perfsEl.appendChild(row);
-  wireDateHint(row.querySelector(".date-input"));
+  wireDateMask(row.querySelector(".date-input"));
 }
 document.getElementById("addBtn").onclick=function(){
   // Nouvelle ligne prete a l'emploi : date du jour par defaut, meme distance que la derniere
   // ligne existante (utile pour un test recurrent sur la meme distance chaque semaine).
   var rows=[].slice.call(perfsEl.children);
   var lastDist=rows.length ? rows[rows.length-1].querySelector(".dist").value : 5000;
-  addPerf(+lastDist||5000, "", todayISO());
+  addPerf(+lastDist||5000, "", todayFR());
   saveState();
 };
 
@@ -428,12 +443,11 @@ if(savedState && savedState.perfs && savedState.perfs.length){
 } else {
   addPerf(5000);
 }
-wireDateHint(document.getElementById("hxDate"));
+wireDateMask(document.getElementById("hxDate"));
 if(savedState){
   document.getElementById("hxPace").value=savedState.hxPace||"";
-  document.getElementById("hxDate").value=savedState.hxDate||"";
+  document.getElementById("hxDate").value=toFRDisplay(savedState.hxDate);
   if(savedState.profile) document.getElementById("hybridProfile").value=savedState.profile;
-  wireDateHint(document.getElementById("hxDate"));
 }
 perfsEl.addEventListener("input", saveState);
 perfsEl.addEventListener("change", saveState);
@@ -446,7 +460,7 @@ document.getElementById("calcBtn").onclick=function(){
   var rows=[].slice.call(perfsEl.children), perfs=[];
   rows.forEach(function(r){
     var d=+r.querySelector(".dist").value, t=parseTime(r.querySelector(".time").value), dt=r.querySelector(".date-input").value;
-    if(d&&t) perfs.push({d:d,t:t,date:dt?new Date(dt):null});
+    if(d&&t) perfs.push({d:d,t:t,date:parseDateFR(dt)});
   });
 
   var hxPace=parseTime(document.getElementById("hxPace").value); // s/km mesuré
@@ -460,7 +474,7 @@ document.getElementById("calcBtn").onclick=function(){
       // (8 km a cette allure moyenne). Moins fiable, car cette allure inclut deja la fatigue
       // des stations - la vraie allure de course a froid est probablement plus rapide que ça.
       hyroxOnly=true;
-      perfs.push({d:8000, t:hxPace*8, date: hxDate?new Date(hxDate):null});
+      perfs.push({d:8000, t:hxPace*8, date: parseDateFR(hxDate)});
     } else {
       out.classList.add("hidden"); no.classList.remove("hidden"); dateErr.style.display="none"; return;
     }
