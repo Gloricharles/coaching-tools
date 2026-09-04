@@ -62,6 +62,13 @@
   .help-btn.open{background:var(--accent2);color:var(--card);border-color:var(--accent2)}
   .hint.collapsible{display:none}
   .hint.collapsible.open{display:block}
+  .quiz-q{margin-bottom:16px}
+  .quiz-label{font-size:13px;font-weight:600;color:var(--txt);margin-bottom:8px;line-height:1.4}
+  .quiz-opt{display:block;width:100%;text-align:left;background:var(--card);border:1px solid var(--line);
+    color:var(--txt);border-radius:8px;padding:9px 12px;font-size:13px;font-family:inherit;cursor:pointer;
+    margin-bottom:6px;transition:all .12s}
+  .quiz-opt:hover{border-color:var(--accent2)}
+  .quiz-opt.selected{border-color:var(--accent2);background:var(--accent2);color:var(--card);font-weight:600}
   .go{background:var(--accent);color:var(--on-accent);border:none;width:100%;padding:14px;border-radius:11px;
     font-size:16px;font-weight:800;cursor:pointer;font-family:"Bricolage Grotesque","Work Sans",sans-serif;letter-spacing:.03em;margin-top:6px}
   .go:active{transform:translateY(1px)}
@@ -132,6 +139,33 @@
       <option value="runner">Plutôt coureur pur (peu de travail stations sous fatigue)</option>
       <option value="hybrid">Hybride équilibré (course et stations regulierement combinees a l'entrainement)</option>
     </select>
+    <button type="button" class="allures-toggle" id="quizToggle" style="margin-top:8px;margin-bottom:0;">Je ne sais pas quel profil choisir</button>
+    <div id="profileQuiz" style="display:none;margin-top:12px;padding:14px;border:1px solid var(--line);border-radius:9px;background:var(--card2);">
+      <p style="font-size:12.5px;color:var(--muted);margin:0 0 14px;">Réponds à ces 3 questions - on en déduit ton profil. Pas d'auto-évaluation, juste des faits.</p>
+
+      <div class="quiz-q" data-q="history">
+        <div class="quiz-label">Depuis combien de temps cours-tu régulièrement (sorties de 30 min ou plus) ?</div>
+        <button type="button" class="quiz-opt" data-v="0">Je ne cours pas / très rarement</button>
+        <button type="button" class="quiz-opt" data-v="1">Moins d'un an</button>
+        <button type="button" class="quiz-opt" data-v="2">Plus d'un an, régulièrement</button>
+      </div>
+
+      <div class="quiz-q" data-q="freq">
+        <div class="quiz-label">Combien de fois par semaine cours-tu (hors muscu / CrossFit) ?</div>
+        <button type="button" class="quiz-opt" data-v="0">0 à 1 fois</button>
+        <button type="button" class="quiz-opt" data-v="1">2 à 3 fois</button>
+        <button type="button" class="quiz-opt" data-v="2">4 fois ou plus</button>
+      </div>
+
+      <div class="quiz-q" data-q="background">
+        <div class="quiz-label">Ton background sportif principal ?</div>
+        <button type="button" class="quiz-opt" data-v="0">Force / haltéro / CrossFit</button>
+        <button type="button" class="quiz-opt" data-v="1">Mixte (les deux à parts égales)</button>
+        <button type="button" class="quiz-opt" data-v="2">Endurance / course à pied</button>
+      </div>
+
+      <div id="quizResult" style="display:none;margin-top:14px;padding-top:12px;border-top:1px solid var(--line);font-size:13px;"></div>
+    </div>
     <p class="hint collapsible">Influence tes allures easy/récup (un profil orienté force doit courir plus lentement qu'un
       coureur pur pour rester dans la bonne zone, à score de forme égal) et, en l'absence de Hyrox mesuré,
       affine la fourchette de "taxe de fatigue" estimée sur le race pace.</p>
@@ -291,7 +325,38 @@
 </div>
 
 <script>
-// ============ Aides dépliables (?) ============
+// ============ Questionnaire de profil ============
+document.getElementById("quizToggle").addEventListener("click", function(){
+  var quiz=document.getElementById("profileQuiz");
+  var open=quiz.style.display==="none";
+  quiz.style.display=open?"block":"none";
+  this.textContent=open?"Masquer le questionnaire":"Je ne sais pas quel profil choisir";
+});
+var quizAnswers={history:null, freq:null, background:null};
+var PROFILE_LABEL={force:"Plutôt orienté force", hybrid:"Hybride équilibré", runner:"Plutôt coureur pur"};
+[].slice.call(document.querySelectorAll(".quiz-q")).forEach(function(q){
+  var key=q.dataset.q;
+  [].slice.call(q.querySelectorAll(".quiz-opt")).forEach(function(opt){
+    opt.addEventListener("click", function(){
+      [].slice.call(q.querySelectorAll(".quiz-opt")).forEach(function(o){ o.classList.remove("selected"); });
+      opt.classList.add("selected");
+      quizAnswers[key]=parseInt(opt.dataset.v,10);
+      maybeComputeProfile();
+    });
+  });
+});
+function maybeComputeProfile(){
+  if(quizAnswers.history===null || quizAnswers.freq===null || quizAnswers.background===null) return;
+  var score=quizAnswers.history + quizAnswers.freq + quizAnswers.background*2;
+  var profile = score<=2 ? "force" : (score<=5 ? "hybrid" : "runner");
+  document.getElementById("hybridProfile").value=profile;
+  if(typeof saveState==="function") saveState();
+  var res=document.getElementById("quizResult");
+  res.style.display="block";
+  res.innerHTML="Profil déduit : <b style=\"color:var(--accent2)\">"+PROFILE_LABEL[profile]+"</b>. "+
+    "Il est déjà sélectionné ci-dessus - tu peux le changer manuellement si tu penses qu'il ne colle pas.";
+}
+
 // Chaque .hint.collapsible est masquée par défaut et précédée d'un petit "?" qui la déplie.
 [].slice.call(document.querySelectorAll(".hint.collapsible")).forEach(function(hint){
   var btn=document.createElement("button");
