@@ -121,8 +121,9 @@
       affine la fourchette de "taxe de fatigue" estimée sur le race pace.</p>
     <label for="hrMax" style="display:block;font-size:12.5px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-top:14px;margin-bottom:6px;">FC max (optionnel)</label>
     <input id="hrMax" type="text" inputmode="numeric" placeholder="ex. 190 bpm" maxlength="3">
-    <p class="hint">Si tu connais ta vraie FC max (mesurée sur le terrain, pas une formule d'âge), les zones
-      afficheront directement les BPM cibles à côté des %. Laisse vide si tu ne la connais pas : les % restent affichés.</p>
+    <p class="hint">Uniquement si tu connais ta vraie FC max, mesurée sur le terrain (test maximal réel). N'utilise
+      pas une formule d'âge type "220 - âge" : ces formules ne sont pas fiables et fausseraient tes zones. Si tu
+      ne l'as jamais mesurée, laisse vide - les % restent affichés et suffisent.</p>
   </div>
 
   <h2>Tes performances récentes</h2>
@@ -144,8 +145,9 @@
     </div>
     <p class="hint">Ton allure moyenne de course sur un Hyrox passé (temps de course total / 8 km). Sert uniquement à
       caler ton race pace réel et à mesurer la taxe de fatigue - elle ne touche pas tes zones d'entraînement.
-      Renseigne le format que tu as réellement couru (solo, doubles...) : ton allure de course en Hyrox dépend
-      surtout de ta fraîcheur à chaque segment, pas d'une conversion universelle entre formats.</p>
+      N'invente pas cette allure si tu n'as jamais fait de Hyrox : laisse le champ vide. Si tu en as fait un,
+      utilise ton temps officiellement enregistré, que tu retrouves sur l'app ROXFIT ou sur hyrox.com (section
+      Results, recherche par nom).</p>
     <button class="go" id="calcBtn">Calculer mes allures</button>
     <p class="hint" id="dateError" style="display:none;color:var(--accent);font-weight:600;">Ajoute une date à chaque performance renseignée : sans ça, impossible de savoir laquelle est la plus récente pour la moyenne.</p>
     <p class="hint" id="durationWarn" style="display:none;color:var(--warn);font-weight:600;"></p>
@@ -171,34 +173,6 @@
       <div class="diag hidden" id="diag"></div>
     </div>
 
-    <h2>Convertisseur allure &rarr; temps</h2>
-    <div class="card">
-      <div class="hyrox">
-        <input id="convPace" inputmode="text" placeholder="Allure (mm:ss / km)">
-        <input id="convDist" type="number" placeholder="Distance (m)" value="200" min="10" step="10">
-      </div>
-      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px;">
-        <button type="button" class="distbtn" data-d="100">100 m</button>
-        <button type="button" class="distbtn active" data-d="200">200 m</button>
-        <button type="button" class="distbtn" data-d="300">300 m</button>
-        <button type="button" class="distbtn" data-d="400">400 m</button>
-        <button type="button" class="distbtn" data-d="600">600 m</button>
-        <button type="button" class="distbtn" data-d="800">800 m</button>
-        <button type="button" class="distbtn" data-d="1000">1000 m</button>
-      </div>
-      <div id="convResult" style="margin-top:14px;font-size:26px;font-weight:800;color:var(--accent2);font-variant-numeric:tabular-nums;">--:--</div>
-      <p class="hint">Renseigne une allure - la tienne, ou une des allures ci-dessus - et une distance, pour obtenir le temps cible sur cette distance precise.</p>
-    </div>
-
-    <h2>Convertisseur allure &harr; km/h</h2>
-    <div class="card">
-      <div class="hyrox">
-        <input id="convPaceKmh" inputmode="text" placeholder="Allure (mm:ss / km)">
-        <input id="convKmh" type="number" inputmode="decimal" placeholder="Vitesse (km/h)" min="1" step="0.1">
-      </div>
-      <p class="hint">Renseigne l'un ou l'autre, l'autre se calcule automatiquement - pratique pour regler un tapis a n'importe quelle allure, meme en dehors des zones ci-dessus.</p>
-    </div>
-
     <h2>Équivalences théoriques par distance</h2>
     <div class="card">
       <table>
@@ -218,6 +192,37 @@
       <div class="note">Aucune performance renseignée. Sans donnée chiffrée, pilote au ressenti :
         les séances easy à RPE 3-4, le travail hard (seuil 2) à RPE 7, les reps fast à RPE 9.</div>
     </div>
+  </div>
+
+  <h2>Convertisseur allure &rarr; temps</h2>
+  <div class="card">
+    <select id="convZone" style="margin-bottom:10px;display:none;"></select>
+    <div class="hyrox">
+      <input id="convPace" inputmode="text" placeholder="Allure (mm:ss / km)">
+      <input id="convDist" type="number" placeholder="Distance (m)" value="200" min="10" step="10">
+    </div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px;">
+      <button type="button" class="distbtn" data-d="100">100 m</button>
+      <button type="button" class="distbtn active" data-d="200">200 m</button>
+      <button type="button" class="distbtn" data-d="300">300 m</button>
+      <button type="button" class="distbtn" data-d="400">400 m</button>
+      <button type="button" class="distbtn" data-d="600">600 m</button>
+      <button type="button" class="distbtn" data-d="800">800 m</button>
+      <button type="button" class="distbtn" data-d="1000">1000 m</button>
+    </div>
+    <div id="convResult" style="margin-top:14px;font-size:26px;font-weight:800;color:var(--accent2);font-variant-numeric:tabular-nums;">--:--</div>
+    <p class="hint">Renseigne une allure et une distance pour obtenir le temps cible. Toujours disponible, même sans
+      données encodées (utile en coaching). Si tu as calculé tes zones, le menu ci-dessus te laisse choisir une
+      allure calculée directement (ex. 200 m à ton allure hard).</p>
+  </div>
+
+  <h2>Convertisseur allure &harr; km/h</h2>
+  <div class="card">
+    <div class="hyrox">
+      <input id="convPaceKmh" inputmode="text" placeholder="Allure (mm:ss / km)">
+      <input id="convKmh" type="number" inputmode="decimal" placeholder="Vitesse (km/h)" min="1" step="0.1">
+    </div>
+    <p class="hint">Renseigne l'un ou l'autre, l'autre se calcule automatiquement - pratique pour regler un tapis a n'importe quelle allure, meme en dehors des zones ci-dessus.</p>
   </div>
 
   <div class="foot">BeGlorious - estimation à titre indicatif, modèle vitesse-VO2 (Daniels-Gilbert).
@@ -402,6 +407,7 @@ function renderAllureCards(unit){
   [].slice.call(document.querySelectorAll(".pace-card")).forEach(function(card){
     card.addEventListener("click", function(){ card.classList.toggle("open"); });
   });
+  if(typeof populateConvZone==="function") populateConvZone();
 }
 document.getElementById("unitPace").addEventListener("click", function(){
   currentUnit="pace";
@@ -425,7 +431,7 @@ var perfsEl=document.getElementById("perfs");
 // Raccourcis de distances courantes : remplissent le champ distance de la derniere ligne perf.
 var DIST_CHIPS = [
   {m:1500,label:"1500 m"},{m:3000,label:"3 km"},{m:5000,label:"5 km"},
-  {m:8000,label:"8 km"},{m:10000,label:"10 km"},{m:21097,label:"Semi"}
+  {m:8000,label:"8 km"},{m:10000,label:"10 km"},{m:15000,label:"15 km"},{m:21097,label:"Semi"}
 ];
 function renderDistChips(){
   document.getElementById("distChips").innerHTML = DIST_CHIPS.map(function(c){
@@ -617,16 +623,16 @@ document.getElementById("calcBtn").onclick=function(){
   var raceRows;
   var raceRpeNote = " (ressenti reel plus eleve qu'a froid : sortie de station, pas un effort isole)";
   if(hyroxOnly){
-    raceRows=[{n:"race pace", tag:"seule ref.", cls:"pill", lo:hxPace-5, hi:hxPace+5, rpeSuffix:raceRpeNote,
+    raceRows=[{n:"race pace Hyrox", tag:"seule ref.", cls:"pill", lo:hxPace-5, hi:hxPace+5, rpeSuffix:raceRpeNote,
       use:"Ton seul Hyrox connu, utilise comme base de tout le calcul. Pas de comparaison possible sans une performance de course independante."}];
   } else if(hxPace){
-    raceRows=[{n:"race pace", tag:"mesuré", cls:"pill meas", lo:hxPace-5, hi:hxPace+5, rpeSuffix:raceRpeNote,
+    raceRows=[{n:"race pace Hyrox", tag:"mesuré", cls:"pill meas", lo:hxPace-5, hi:hxPace+5, rpeSuffix:raceRpeNote,
       use:"Ta vraie allure de course en Hyrox, mesurée (± marge jour de course), pour le format que tu as couru. C'est ta reference la plus fiable pour t'entrainer - le modele theorique 'a froid' est deja compare dans le diagnostic ci-dessous."}];
   } else {
     var profile=currentProfile();
     var tax=TAX_BY_PROFILE[profile]||TAX_BY_PROFILE.force;
-    raceRows=[{n:"race pace", tag:"estimé", cls:"pill", lo:pHard+tax.low, hi:pHard+tax.high, rpeSuffix:raceRpeNote,
-      use:"Base sur ton allure seuil (S2) a froid + une taxe de fatigue estimee selon ton profil. Estimation de coaching/experience : encode un vrai Hyrox pour la caler sur du réel. Ton allure en course depend surtout de ta fraicheur a chaque segment (gestion des stations), pas d'une conversion universelle entre formats."}];
+    raceRows=[{n:"race pace Hyrox", tag:"estimé", cls:"pill", lo:pHard+tax.low, hi:pHard+tax.high, rpeSuffix:raceRpeNote,
+      use:"C'est ton allure de course PENDANT un Hyrox (pas ton allure de course a pied classique). Base sur ton allure seuil (S2) a froid + une taxe de fatigue estimee selon ton profil. Estimation de coaching/experience : encode un vrai Hyrox pour la caler sur du réel. Ton allure en course depend surtout de ta fraicheur a chaque segment (gestion des stations), pas d'une conversion universelle entre formats."}];
   }
 
   var allures=[
@@ -678,7 +684,7 @@ document.getElementById("calcBtn").onclick=function(){
   } else {
     diag.classList.add("hidden");
     note.classList.remove("hidden");
-    note.innerHTML="race pace est ici une estimation (zone soutenable). Renseigne l'allure moyenne d'un Hyrox passé "+
+    note.innerHTML="Le race pace Hyrox (ton allure de course pendant un Hyrox, pas ta course a pied classique) est ici une estimation (zone soutenable). Renseigne l'allure moyenne d'un Hyrox passé "+
       "pour obtenir ta vraie valeur et la taxe de fatigue mesurée.";
   }
 
@@ -713,6 +719,26 @@ document.getElementById("convDist").addEventListener("input", updateConverter);
     btn.classList.add("active");
     updateConverter();
   });
+});
+
+// Menu "allure calculee" : rempli depuis les zones calculees si des donnees ont ete encodees.
+// Choisir une zone remplit le champ allure avec le centre de sa fourchette.
+function populateConvZone(){
+  var sel=document.getElementById("convZone");
+  if(!lastAllures || !lastAllures.length){ sel.style.display="none"; return; }
+  var opts='<option value="">— ou choisis une allure calculée —</option>';
+  lastAllures.forEach(function(a,i){
+    var mid=Math.round((a.lo+a.hi)/2);
+    opts+='<option value="'+mid+'">'+a.n+' ('+fmtPace(a.lo)+" - "+fmtPace(a.hi)+' /km)</option>';
+  });
+  sel.innerHTML=opts;
+  sel.style.display="block";
+}
+document.getElementById("convZone").addEventListener("change", function(){
+  if(this.value){
+    document.getElementById("convPace").value=fmtPace(parseInt(this.value,10));
+    updateConverter();
+  }
 });
 
 // ============ Convertisseur allure <-> km/h ============
