@@ -22,6 +22,14 @@
   header{text-align:center;padding:8px 0 20px}
   .logo-wordmark svg{width:min(78%,300px);height:auto;color:var(--txt)}
   .sub{color:var(--muted);font-size:13px;margin-top:10px;letter-spacing:.02em}
+  .tab-panel{display:none}
+  .tab-panel.active{display:block}
+  .methodo h3{color:var(--accent);font-size:16px;margin:24px 0 8px;font-weight:800}
+  .methodo h3:first-child{margin-top:8px}
+  .methodo p{font-size:13.5px;line-height:1.6;color:var(--txt);margin:0 0 10px}
+  .methodo .warn-box{border-left:3px solid var(--warn);background:var(--card2);padding:10px 14px;
+    border-radius:0 8px 8px 0;margin:10px 0;font-size:13px;line-height:1.55}
+  .methodo .src{font-size:11.5px;color:var(--muted);font-style:italic}
   h2{font-family:"Bricolage Grotesque","Work Sans",sans-serif;font-size:13px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);
     margin:28px 0 12px;font-weight:800}
   .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:14px}
@@ -46,6 +54,14 @@
     width:100%;padding:11px;border-radius:9px;cursor:pointer;font-size:14px;font-family:inherit;margin-top:4px}
   .add:hover{border-color:var(--accent2)}
   .hint{color:var(--muted);font-size:12.5px;margin-top:10px}
+  .help-btn{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;
+    border-radius:50%;border:1px solid var(--line);background:var(--card2);color:var(--muted);
+    font-size:11.5px;font-weight:700;cursor:pointer;font-family:inherit;line-height:1;padding:0;
+    margin-left:8px;vertical-align:middle;transition:all .15s}
+  .help-btn:hover{border-color:var(--accent2);color:var(--accent2)}
+  .help-btn.open{background:var(--accent2);color:var(--card);border-color:var(--accent2)}
+  .hint.collapsible{display:none}
+  .hint.collapsible.open{display:block}
   .go{background:var(--accent);color:var(--on-accent);border:none;width:100%;padding:14px;border-radius:11px;
     font-size:16px;font-weight:800;cursor:pointer;font-family:"Bricolage Grotesque","Work Sans",sans-serif;letter-spacing:.03em;margin-top:6px}
   .go:active{transform:translateY(1px)}
@@ -116,12 +132,12 @@
       <option value="runner">Plutôt coureur pur (peu de travail stations sous fatigue)</option>
       <option value="hybrid">Hybride équilibré (course et stations regulierement combinees a l'entrainement)</option>
     </select>
-    <p class="hint">Influence tes allures easy/récup (un profil orienté force doit courir plus lentement qu'un
+    <p class="hint collapsible">Influence tes allures easy/récup (un profil orienté force doit courir plus lentement qu'un
       coureur pur pour rester dans la bonne zone, à score de forme égal) et, en l'absence de Hyrox mesuré,
       affine la fourchette de "taxe de fatigue" estimée sur le race pace.</p>
     <label for="hrMax" style="display:block;font-size:12.5px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-top:14px;margin-bottom:6px;">FC max (optionnel)</label>
     <input id="hrMax" type="text" inputmode="numeric" placeholder="ex. 190 bpm" maxlength="3">
-    <p class="hint">Uniquement si tu connais ta vraie FC max, mesurée sur le terrain (test maximal réel). N'utilise
+    <p class="hint collapsible">Uniquement si tu connais ta vraie FC max, mesurée sur le terrain (test maximal réel). N'utilise
       pas une formule d'âge type "220 - âge" : ces formules ne sont pas fiables et fausseraient tes zones. Si tu
       ne l'as jamais mesurée, laisse vide - les % restent affichés et suffisent.</p>
   </div>
@@ -131,7 +147,7 @@
     <div class="dist-chips" id="distChips"></div>
     <div id="perfs"></div>
     <button class="add" id="addBtn">+ Ajouter une performance</button>
-    <p class="hint">N'importe quelle distance déjà réalisée (en mètres) + ton temps. Tu peux entrer une distance
+    <p class="hint collapsible">N'importe quelle distance déjà réalisée (en mètres) + ton temps. Tu peux entrer une distance
       exacte (ex. 8423 m) ou utiliser un test à durée fixe (ex. la distance couverte en 40 min). Les raccourcis
       ci-dessus remplissent juste la distance. Les perfs datées de 12 mois ou moins par rapport à la plus récente
       sont moyennées ; les plus anciennes sont ignorées.</p>
@@ -143,7 +159,7 @@
       <input id="hxPace" placeholder="Allure moy. course (mm:ss / km)">
       <input id="hxDate" type="text" class="date-input" inputmode="numeric" placeholder="jj/mm/aaaa" maxlength="10">
     </div>
-    <p class="hint">Ton allure moyenne de course sur un Hyrox passé (temps de course total / 8 km). Sert uniquement à
+    <p class="hint collapsible">Ton allure moyenne de course sur un Hyrox passé (temps de course total / 8 km). Sert uniquement à
       caler ton race pace réel et à mesurer la taxe de fatigue - elle ne touche pas tes zones d'entraînement.
       N'invente pas cette allure si tu n'as jamais fait de Hyrox : laisse le champ vide. Si tu en as fait un,
       utilise ton temps officiellement enregistré, que tu retrouves sur l'app ROXFIT ou sur hyrox.com (section
@@ -166,9 +182,9 @@
       </div>
       <div id="allures"></div>
       <button type="button" class="allures-toggle" id="exportImgBtn" style="margin-top:10px;">Telecharger en image (pense-bete)</button>
-      <p class="hint" style="margin-top:10px;">La FC varie beaucoup d'une personne à l'autre - le %FCmax indiqué est un repère théorique (équation de
-        Swain), pas une mesure individuelle. La référence la plus fiable reste ta FC seuil réelle, pas un %FCmax
-        de montre. Sur very hard et fast, la FC réagit avec retard : pilote au chrono, pas au cardio.</p>
+      <p class="hint collapsible" style="margin-top:10px;">La FC varie beaucoup d'une personne à l'autre - les %FCmax indiqués sont ceux des zones de Daniels
+        (VDOT), un repère de population, pas une mesure individuelle. La référence la plus fiable reste ta FC seuil
+        réelle. Sur very hard et fast, la FC réagit avec retard : pilote au chrono, pas au cardio.</p>
       <div class="note" id="raceNote"></div>
       <div class="diag hidden" id="diag"></div>
     </div>
@@ -179,8 +195,8 @@
         <thead><tr><th>Distance</th><th class="num">Temps</th><th class="num">Allure</th></tr></thead>
         <tbody id="equiv"></tbody>
       </table>
-      <p class="hint">Équivalences théoriques, basées sur ta seule capacité aérobie/vitesse. Elles ne garantissent pas le chrono réel sur une distance non entraînée spécifiquement - le marathon en particulier dépend aussi de l'endurance spécifique, du ravitaillement et du mental, pas seulement du moteur aérobie.</p>
-      <p class="hint" style="margin-top:10px;padding-top:10px;border-top:1px solid var(--line);">
+      <p class="hint collapsible">Équivalences théoriques, basées sur ta seule capacité aérobie/vitesse. Elles ne garantissent pas le chrono réel sur une distance non entraînée spécifiquement - le marathon en particulier dépend aussi de l'endurance spécifique, du ravitaillement et du mental, pas seulement du moteur aérobie.</p>
+      <p class="hint collapsible" style="margin-top:10px;padding-top:10px;border-top:1px solid var(--line);">
         <b style="color:var(--txt)">Fiabilité :</b> bonne de 3 km au marathon (formule vérifiée contre des références réelles publiées, écart sous 0,1%) ;
         approximative sur 1 km (en dessous de la plage officiellement étudiée, écart mesuré autour de 4%).
       </p>
@@ -211,7 +227,7 @@
       <button type="button" class="distbtn" data-d="1000">1000 m</button>
     </div>
     <div id="convResult" style="margin-top:14px;font-size:26px;font-weight:800;color:var(--accent2);font-variant-numeric:tabular-nums;">--:--</div>
-    <p class="hint">Renseigne une allure et une distance pour obtenir le temps cible. Toujours disponible, même sans
+    <p class="hint collapsible">Renseigne une allure et une distance pour obtenir le temps cible. Toujours disponible, même sans
       données encodées (utile en coaching). Si tu as calculé tes zones, le menu ci-dessus te laisse choisir une
       allure calculée directement (ex. 200 m à ton allure hard).</p>
   </div>
@@ -222,14 +238,79 @@
       <input id="convPaceKmh" inputmode="text" placeholder="Allure (mm:ss / km)">
       <input id="convKmh" type="number" inputmode="decimal" placeholder="Vitesse (km/h)" min="1" step="0.1">
     </div>
-    <p class="hint">Renseigne l'un ou l'autre, l'autre se calcule automatiquement - pratique pour regler un tapis a n'importe quelle allure, meme en dehors des zones ci-dessus.</p>
+    <p class="hint collapsible">Renseigne l'un ou l'autre, l'autre se calcule automatiquement - pratique pour regler un tapis a n'importe quelle allure, meme en dehors des zones ci-dessus.</p>
   </div>
+
+  <div style="text-align:center;margin:28px 0 8px;">
+    <button type="button" class="allures-toggle" id="methodoToggle" style="margin-bottom:0;">Comprendre la méthodologie et les limites de l'outil (bonus)</button>
+  </div>
+
+  <div class="tab-panel methodo" id="tab-methodo">
+    <p style="color:var(--muted);font-size:13px;margin:16px 0 4px;">Cet outil repose sur des équations physiologiques publiées, croisées avec l'expérience terrain d'un coach. Chaque chiffre a ses limites : cette page les explique honnêtement - pour t'en servir intelligemment, pas à l'aveugle.</p>
+
+    <h3>D'où viennent les allures ?</h3>
+    <p>Les zones d'entraînement (easy, tempo, seuil, very hard, fast) sont calculées avec les équations de Daniels &amp; Gilbert (1979), une référence publiée en sciences de l'exercice. À partir d'une performance récente, l'outil déduit un "score de forme" (équivalent VDOT) puis les allures de chaque zone.</p>
+    <p class="src">Validé contre une référence externe : un 5 km en 17:02.5 doit donner un score de 60,0 - le calcul sort 60,02.</p>
+
+    <h3>Pourquoi les % de fréquence cardiaque sont à prendre avec des pincettes</h3>
+    <div class="warn-box">La FC varie énormément d'une personne à l'autre, à effort identique. Les %FCmax affichés viennent des zones de Daniels (un repère de population), pas de ta physiologie précise. Ta vraie zone 2 peut être plus basse ou plus haute que ce qui est prédit.</div>
+    <p>Concrètement : ne cours pas "en zone 2" juste parce que ta montre affiche le bon %. Recoupe toujours avec ton RPE (ressenti d'effort) et ta capacité à parler. Si tu tiens une conversation complète, tu es en easy, peu importe ce que dit le cardio.</p>
+    <p>La référence la plus fiable reste ta <b>FC seuil réelle</b>, mesurée sur le terrain - pas un %FCmax théorique, et surtout pas une FC max estimée par une formule d'âge (voir plus bas).</p>
+
+    <h3>Ne JAMAIS utiliser "220 - âge"</h3>
+    <div class="warn-box">Les formules d'estimation de FC max par l'âge (220 - âge et variantes) sont notoirement imprécises : l'écart réel atteint couramment ±10 à 12 battements. Utilisée pour caler tes zones, une FC max fausse rend toutes tes zones fausses.</div>
+    <p>Si tu ne connais pas ta vraie FC max mesurée, laisse le champ vide dans l'outil : les % de zone restent affichés et suffisent comme repère.</p>
+
+    <h3>Sur very hard et fast : pilote au chrono, pas au cardio</h3>
+    <p>Sur les efforts courts et intenses, la fréquence cardiaque réagit avec retard : elle continue de monter alors que l'effort est déjà fini. S'y fier te ferait courir trop vite. Sur ces zones, le chrono (ton allure cible) est le seul repère fiable - c'est pour ça que l'outil n'affiche pas de FC sur "fast".</p>
+
+    <h3>Le profil (coureur / hybride / force) : ce qu'il change vraiment</h3>
+    <p>Un athlète orienté force a typiquement une économie de course moins développée qu'un coureur pur. À score de forme égal, il doit courir ses allures faciles un peu plus lentement pour rester dans la bonne zone. L'outil ajuste easy et tempo selon le profil.</p>
+    <p class="src">Ces ajustements s'appuient sur les fourchettes %VO2max distinctes par profil (Endurant vs Powerful) documentées par Upside Strength. Le profil "hybride" est une interpolation entre les deux - un repère raisonnable, pas une catégorie mesurée.</p>
+
+    <h3>Le "race pace Hyrox" n'est pas ton allure de course classique</h3>
+    <p>C'est ton allure de course <b>pendant</b> un Hyrox, ralentie par la fatigue des stations - pas ton allure sur route ou piste. Un coureur pur qui découvre le Hyrox courra plus lentement en course qu'à froid, c'est normal.</p>
+    <div class="warn-box">L'outil n'invente pas de conversion entre solo et doubles pour la course. Les données fiables (Repz, roxzone) sont claires : sur la course spécifiquement, l'avantage du doubles est faible à nul (vous courez chaque km ensemble, à l'allure du plus lent). Le gros gain du doubles vient des stations, que cet outil ne calcule pas. La seule donnée juste, c'est ton vrai chrono du format que tu cours.</div>
+
+    <h3>Les limites de fiabilité du modèle</h3>
+    <p>Le calcul est le plus fiable pour des efforts d'environ 3 min à 1h30. En dessous (sprints) ou au-dessus (marathon, ultra), la précision baisse et l'outil t'avertit. Le score sur une distance ne garantit pas le chrono sur une autre distance non entraînée spécifiquement : le marathon dépend aussi de l'endurance longue, du ravitaillement et du mental, pas seulement du moteur aérobie.</p>
+
+    <h3>Science publiée + jugement de coaching</h3>
+    <p>Cet outil ne se contente pas d'appliquer des formules à l'aveugle. Là où la littérature scientifique est solide (les allures de Daniels, les zones FC), l'outil s'y tient fidèlement. Mais plusieurs choix relèvent du jugement d'un coach expérimenté, et c'est assumé : l'ampleur des ajustements par profil, la largeur des fourchettes, ou encore le refus délibéré d'inventer une conversion solo/doubles là où aucune donnée fiable n'existe.</p>
+    <p>Ce dernier point est important : face à un outil, la tentation est de tout chiffrer pour paraître précis. Le vrai savoir-faire, c'est de savoir <b>quand ne pas donner un chiffre</b> - quand une estimation inventée serait plus trompeuse qu'utile. Chaque fois qu'une valeur relève de l'expérience plutôt que d'une étude, l'outil le signale explicitement au lieu de le maquiller en donnée scientifique.</p>
+
+    <h3>La règle d'or</h3>
+    <p>Cet outil est un point de départ, pas une vérité absolue. En cas de divergence entre le calcul et ton ressenti terrain, <b>le ressenti et l'observation priment</b>. Recalibre après chaque nouvelle performance, ou toutes les 6 à 8 semaines.</p>
+
+    <p class="src" style="margin-top:24px;padding-top:14px;border-top:1px solid var(--line);">Sources principales : Daniels &amp; Gilbert (1979), Jack Daniels' Running Formula (zones VDOT), Upside Strength (profils Endurant/Powerful), Repz &amp; roxzone (dynamique Hyrox solo/doubles). Ajustements et arbitrages : jugement de coaching, signalés comme tels dans l'outil.</p>
+  </div><!-- /tab-methodo -->
 
   <div class="foot">BeGlorious - estimation à titre indicatif, modèle vitesse-VO2 (Daniels-Gilbert).
     À affiner au RPE et au ressenti terrain. Recalibre après une nouvelle perf ou tous les 6-8 semaines.</div>
+
 </div>
 
 <script>
+// ============ Aides dépliables (?) ============
+// Chaque .hint.collapsible est masquée par défaut et précédée d'un petit "?" qui la déplie.
+[].slice.call(document.querySelectorAll(".hint.collapsible")).forEach(function(hint){
+  var btn=document.createElement("button");
+  btn.type="button"; btn.className="help-btn"; btn.textContent="?";
+  btn.setAttribute("aria-label","Afficher l'aide");
+  hint.parentNode.insertBefore(btn, hint);
+  btn.addEventListener("click", function(){
+    var open=hint.classList.toggle("open");
+    btn.classList.toggle("open", open);
+  });
+});
+
+document.getElementById("methodoToggle").addEventListener("click", function(){
+  var panel=document.getElementById("tab-methodo");
+  var open=panel.classList.toggle("active");
+  this.textContent = open ? "Masquer la méthodologie" : "Comprendre la méthodologie et les limites de l'outil (bonus)";
+  if(open) panel.scrollIntoView({behavior:"smooth", block:"start"});
+});
+
 // ============ Modèle vitesse-VO2 (Daniels-Gilbert) ============
 var FRAC = {easyFast:0.72, easySlow:0.63, hard:0.88, fast:1.08};
 // Le modele vitesse-VO2 est calibre sur des coureurs entraines (economie de course standard).
@@ -310,13 +391,12 @@ function predictedDurationMin(vd, dist){
 // profils lents. Calcule le pourcentage reel a partir de la duree marathon predite pour cette personne.
 function mPct(vd){ return pctMax(predictedDurationMin(vd, 42195)); }
 
-// Reperes RPE et FC, calcules dynamiquement pour chaque allure (pas des valeurs figees par zone).
-// %FCmax via l'equation de Swain (1994, revue par les pairs) : %FCmax = 0.64 x %VO2max + 37.
-// Cette relation n'est PAS lineaire (une erreur frequente serait de supposer %FCmax = %VO2max).
-// Au-dela de 100% VO2max (efforts supramaximaux, ex. reps), la FC plafonne a son max par definition :
-// la formule est cappee a 100%, elle perd son sens au-dela.
+// Reperes RPE et FC par allure. RPE : calcule depuis le %VO2max (echelle d'effort).
+// FC : bornes %FCmax directement issues des zones publiees par Daniels (VDOT), attachees a chaque
+// allure via hrZone. On a abandonne la formule de Swain continue (%FCmax = 0.64 x %VO2max + 37) :
+// regression de population qui surestimait la FC en zone easy pour les profils entraines (elle
+// sortait ~77-83% FCmax pour easy la ou Daniels situe la zone a 65-79%).
 function vo2PctFromPace(paceSec, vd){ var v=60000/paceSec; return vo2FromV(v)/vd; }
-function hrPctFromVo2Pct(pct){ return Math.min(100, Math.max(50, Math.round(0.64*pct*100+37))); }
 function rpeFromVo2Pct(pct){
   if(pct<0.60) return "2-3";
   if(pct<0.75) return "3-4";
@@ -325,24 +405,27 @@ function rpeFromVo2Pct(pct){
   if(pct<1.05) return "8-9";
   return "9-10";
 }
-function repereStr(loSec, hiSec, vd, hrNotRelevant){
-  // loSec = allure la plus rapide (effort le plus intense) -> %VO2max/FC le plus haut
-  var pctHigh = vo2PctFromPace(loSec, vd), pctLow = vo2PctFromPace(hiSec, vd);
+
+function repereStr(a, vd){
+  // RPE : toujours calcule depuis le %VO2max de l'allure (echelle d'effort, robuste).
+  var pctHigh = vo2PctFromPace(a.lo, vd), pctLow = vo2PctFromPace(a.hi, vd);
   var rpe = rpeFromVo2Pct((pctLow+pctHigh)/2);
-  if(hrNotRelevant) return "RPE "+rpe+" &middot; chrono uniquement (FC non pertinente, trop court)";
-  var hrLow = hrPctFromVo2Pct(pctLow), hrHigh = hrPctFromVo2Pct(pctHigh);
-  var hrStr = (hrLow>=100 && hrHigh>=100) ? "~100% FCmax" : hrLow+"-"+hrHigh+"% FCmax";
+  if(a.hrNotRel || !a.hrZone) return "RPE "+rpe+" &middot; chrono uniquement (FC non pertinente, trop court)";
+  // FC : bornes %FCmax directement issues des zones de Daniels (VDOT), pas de la formule de Swain
+  // continue - cette derniere surestimait la FC en zone easy pour les profils entraines.
+  var hrLow = a.hrZone.lo, hrHigh = a.hrZone.hi;
+  var hrStr = hrLow+"-"+hrHigh+"% FCmax";
   // Si l'utilisateur a renseigne sa vraie FC max, on ajoute les BPM cibles a cote du %.
   var hrMaxEl=document.getElementById("hrMax");
   var hrMax = hrMaxEl ? parseInt(hrMaxEl.value,10) : NaN;
   if(hrMax && hrMax>=120 && hrMax<=230){
     var bpmLow=Math.round(hrLow/100*hrMax), bpmHigh=Math.round(hrHigh/100*hrMax);
-    var bpmStr = (hrLow>=100 && hrHigh>=100) ? "~"+Math.round(hrMax)+" bpm" : bpmLow+"-"+bpmHigh+" bpm";
-    hrStr += " (" + bpmStr + ")";
+    hrStr += " (" + bpmLow+"-"+bpmHigh+" bpm)";
   }
   return "RPE "+rpe+" &middot; "+hrStr;
 }
 function paceFromVdot(vd,f){ return 60000/vFromVo2(f*vd); }
+
 function timeForDist(vd,d){
   var km=d/1000, lo=km*120, hi=km*900;
   for(var i=0;i<70;i++){ var m=(lo+hi)/2; if(vdotFromPerf(d,m)>vd) lo=m; else hi=m; }
@@ -395,7 +478,7 @@ function renderAllureCards(unit){
     var paceStr = unit==="kmh"
       ? fmtKmh(a.hi)+" - "+fmtKmh(a.lo)
       : fmtPace(a.lo)+" - "+fmtPace(a.hi)+" /km";
-    var repere = repereStr(a.lo, a.hi, lastVdot, a.hrNotRel) + (a.rpeSuffix || "");
+    var repere = repereStr(a, lastVdot) + (a.rpeSuffix || "");
     return '<div class="pace-card">'+
       '<div class="pace-card-head">'+
         '<span class="pace-name"><span class="pace-chevron">&#9656;</span><span class="zone-badge '+zoneClass(a.n)+'">'+a.n+'</span><span class="'+a.cls+'">'+a.tag+'</span></span>'+
@@ -636,10 +719,10 @@ document.getElementById("calcBtn").onclick=function(){
   }
 
   var allures=[
-    {n:"easy", tag:"base", cls:"pill", lo:pEasyF, hi:pEasyS, use:"Course facile, conversationnelle. Base aérobie."},
-    {n:"tempo", tag:"Z3 / M", cls:"pill", lo:paceFromVdot(vdot,mPct(vdot)-tempoAdjust())-5, hi:paceFromVdot(vdot,mPct(vdot)-tempoAdjust())+5, use:"Allure soutenue continue, a froid (hors contexte Hyrox). Blocs tempo 15-30 min, allure semi/marathon."},
-    {n:"hard", tag:"T / seuil", cls:"pill", lo:pHard-4, hi:pHard+4, use:"Comfortably hard. Blocs longs (1600 m, 5000 m)."},
-    {n:"very hard", tag:"I / VO2max", cls:"pill", lo:paceFromVdot(vdot,1.00)-4, hi:paceFromVdot(vdot,1.00)+4, hrNotRel:true, use:"L'allure la plus dure. Fractions 3-5 min, ça pique. Récup active entre les fractions : au jog (rythme qui permet de récupérer sans marcher), jamais à l'arrêt complet."},
+    {n:"easy", tag:"base", cls:"pill", lo:pEasyF, hi:pEasyS, hrZone:{lo:65,hi:79}, use:"Course facile, conversationnelle. Base aérobie."},
+    {n:"tempo", tag:"Z3 / M", cls:"pill", lo:paceFromVdot(vdot,mPct(vdot)-tempoAdjust())-5, hi:paceFromVdot(vdot,mPct(vdot)-tempoAdjust())+5, hrZone:{lo:80,hi:90}, use:"Allure soutenue continue, a froid (hors contexte Hyrox). Blocs tempo 15-30 min, allure semi/marathon."},
+    {n:"hard", tag:"T / seuil", cls:"pill", lo:pHard-4, hi:pHard+4, hrZone:{lo:88,hi:92}, use:"Comfortably hard. Blocs longs (1600 m, 5000 m)."},
+    {n:"very hard", tag:"I / VO2max", cls:"pill", lo:paceFromVdot(vdot,1.00)-4, hi:paceFromVdot(vdot,1.00)+4, hrZone:{lo:95,hi:100}, use:"L'allure la plus dure. Fractions 3-5 min, ça pique. Récup active entre les fractions : au jog (rythme qui permet de récupérer sans marcher), jamais à l'arrêt complet."},
     {n:"fast", tag:"R / reps", cls:"pill", lo:paceFromVdot(vdot,FRAC.fast)-4, hi:paceFromVdot(vdot,FRAC.fast)+4, hrNotRel:true, use:"Très rapide, foulées et sensations propres (200-400 m). Récup complète au jog entre les fractions, doit ressortir léger."}
   ].concat(raceRows);
   // Plus lent (haut) -> plus rapide (bas) : tri par allure moyenne de chaque fourchette, decroissant
@@ -777,7 +860,7 @@ function exportImage(){
   var y=headerH;
   lastAllures.forEach(function(a){
     var paceStr = currentUnit==="kmh" ? fmtKmh(a.hi)+" - "+fmtKmh(a.lo) : fmtPace(a.lo)+" - "+fmtPace(a.hi)+" /km";
-    var repere = decodeEntities(repereStr(a.lo, a.hi, lastVdot, a.hrNotRel));
+    var repere = decodeEntities(repereStr(a, lastVdot));
 
     ctx.fillStyle=zoneColorHex(a.n); ctx.fillRect(30, y-28, 4, 66);
 
