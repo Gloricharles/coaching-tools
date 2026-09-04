@@ -25,7 +25,14 @@
   h2{font-family:"Bricolage Grotesque","Work Sans",sans-serif;font-size:13px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);
     margin:28px 0 12px;font-weight:800}
   .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:14px}
-  .perf{display:grid;grid-template-columns:1.3fr 1fr 1.1fr auto;gap:8px;align-items:center;margin-bottom:8px}
+  .perf{display:grid;grid-template-columns:1.1fr 1fr 1.1fr auto;gap:8px;align-items:center;margin-bottom:8px}
+  .dist-field{position:relative}
+  .dist-field input{width:100%}
+  .dist-field .unit{position:absolute;right:12px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:13px;pointer-events:none}
+  .dist-chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+  .dist-chip{background:var(--card2);border:1px solid var(--line);color:var(--muted);border-radius:7px;
+    padding:5px 11px;font-size:12.5px;font-family:inherit;cursor:pointer}
+  .dist-chip:hover{border-color:var(--accent2);color:var(--accent2)}
   .hyrox{display:grid;grid-template-columns:1.3fr 1.1fr;gap:8px;align-items:center}
   select,input{width:100%;background:var(--card2);border:1px solid var(--line);color:var(--txt);
     border-radius:9px;padding:11px 10px;font-size:15px;font-family:inherit;-webkit-appearance:none;appearance:none}
@@ -112,14 +119,21 @@
     <p class="hint">Influence tes allures easy/récup (un profil orienté force doit courir plus lentement qu'un
       coureur pur pour rester dans la bonne zone, à score de forme égal) et, en l'absence de Hyrox mesuré,
       affine la fourchette de "taxe de fatigue" estimée sur le race pace.</p>
+    <label for="hrMax" style="display:block;font-size:12.5px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-top:14px;margin-bottom:6px;">FC max (optionnel)</label>
+    <input id="hrMax" type="text" inputmode="numeric" placeholder="ex. 190 bpm" maxlength="3">
+    <p class="hint">Si tu connais ta vraie FC max (mesurée sur le terrain, pas une formule d'âge), les zones
+      afficheront directement les BPM cibles à côté des %. Laisse vide si tu ne la connais pas : les % restent affichés.</p>
   </div>
 
   <h2>Tes performances récentes</h2>
   <div class="card">
+    <div class="dist-chips" id="distChips"></div>
     <div id="perfs"></div>
     <button class="add" id="addBtn">+ Ajouter une performance</button>
-    <p class="hint">Une distance déjà réalisée + ton temps. Les perfs datées de 12 mois ou moins par rapport à la plus
-      récente sont moyennées ; les plus anciennes sont ignorées. Ces perfs calibrent tes zones d'entraînement.</p>
+    <p class="hint">N'importe quelle distance déjà réalisée (en mètres) + ton temps. Tu peux entrer une distance
+      exacte (ex. 8423 m) ou utiliser un test à durée fixe (ex. la distance couverte en 40 min). Les raccourcis
+      ci-dessus remplissent juste la distance. Les perfs datées de 12 mois ou moins par rapport à la plus récente
+      sont moyennées ; les plus anciennes sont ignorées.</p>
   </div>
 
   <h2>Ton dernier Hyrox <span style="text-transform:none;letter-spacing:0;font-weight:400;color:var(--muted)">(optionnel)</span></h2>
@@ -134,6 +148,7 @@
       surtout de ta fraîcheur à chaque segment, pas d'une conversion universelle entre formats.</p>
     <button class="go" id="calcBtn">Calculer mes allures</button>
     <p class="hint" id="dateError" style="display:none;color:var(--accent);font-weight:600;">Ajoute une date à chaque performance renseignée : sans ça, impossible de savoir laquelle est la plus récente pour la moyenne.</p>
+    <p class="hint" id="durationWarn" style="display:none;color:var(--warn);font-weight:600;"></p>
   </div>
 
   <div id="out" class="hidden">
@@ -275,11 +290,6 @@ var DISTS = [
   {m:1000,label:"1 km"},{m:1500,label:"1,5 km"},{m:3000,label:"3 km"},
   {m:5000,label:"5 km"},{m:10000,label:"10 km"},{m:15000,label:"15 km"},{m:21097,label:"Semi (21,1 km)"}
 ];
-var OPTIONS = [
-  {m:1000,label:"1 km"},{m:1500,label:"1500 m"},{m:2000,label:"2 km"},{m:3000,label:"3 km"},
-  {m:5000,label:"5 km"},{m:10000,label:"10 km"},{m:15000,label:"15 km"},
-  {m:21097,label:"Semi (21,1 km)"},{m:42195,label:"Marathon"}
-];
 function vo2FromV(v){ return -4.60 + 0.182258*v + 0.000104*v*v; }
 function vFromVo2(vo2){ var a=0.000104,b=0.182258,c=-(4.60+vo2); return (-b+Math.sqrt(b*b-4*a*c))/(2*a); }
 function pctMax(t){ return 0.8 + 0.1894393*Math.exp(-0.012778*t) + 0.2989558*Math.exp(-0.1932605*t); }
@@ -317,6 +327,14 @@ function repereStr(loSec, hiSec, vd, hrNotRelevant){
   if(hrNotRelevant) return "RPE "+rpe+" &middot; chrono uniquement (FC non pertinente, trop court)";
   var hrLow = hrPctFromVo2Pct(pctLow), hrHigh = hrPctFromVo2Pct(pctHigh);
   var hrStr = (hrLow>=100 && hrHigh>=100) ? "~100% FCmax" : hrLow+"-"+hrHigh+"% FCmax";
+  // Si l'utilisateur a renseigne sa vraie FC max, on ajoute les BPM cibles a cote du %.
+  var hrMaxEl=document.getElementById("hrMax");
+  var hrMax = hrMaxEl ? parseInt(hrMaxEl.value,10) : NaN;
+  if(hrMax && hrMax>=120 && hrMax<=230){
+    var bpmLow=Math.round(hrLow/100*hrMax), bpmHigh=Math.round(hrHigh/100*hrMax);
+    var bpmStr = (hrLow>=100 && hrHigh>=100) ? "~"+Math.round(hrMax)+" bpm" : bpmLow+"-"+bpmHigh+" bpm";
+    hrStr += " (" + bpmStr + ")";
+  }
   return "RPE "+rpe+" &middot; "+hrStr;
 }
 function paceFromVdot(vd,f){ return 60000/vFromVo2(f*vd); }
@@ -404,8 +422,24 @@ function fmtSec(x){ x=Math.round(x); return (x>=0?"+":"-")+Math.abs(x)+" s/km"; 
 
 // ============ Formulaire ============
 var perfsEl=document.getElementById("perfs");
-function optionHtml(sel){
-  return OPTIONS.map(function(o){return '<option value="'+o.m+'"'+(o.m===sel?' selected':'')+'>'+o.label+'</option>';}).join("");
+// Raccourcis de distances courantes : remplissent le champ distance de la derniere ligne perf.
+var DIST_CHIPS = [
+  {m:1500,label:"1500 m"},{m:3000,label:"3 km"},{m:5000,label:"5 km"},
+  {m:8000,label:"8 km"},{m:10000,label:"10 km"},{m:21097,label:"Semi"}
+];
+function renderDistChips(){
+  document.getElementById("distChips").innerHTML = DIST_CHIPS.map(function(c){
+    return '<button type="button" class="dist-chip" data-m="'+c.m+'">'+c.label+'</button>';
+  }).join("");
+  [].slice.call(document.querySelectorAll(".dist-chip")).forEach(function(btn){
+    btn.addEventListener("click", function(){
+      var rows=[].slice.call(perfsEl.children);
+      if(!rows.length) return;
+      var lastDist=rows[rows.length-1].querySelector(".dist");
+      lastDist.value=btn.dataset.m;
+      saveState();
+    });
+  });
 }
 // Masque de saisie : l'utilisateur ne tape que des chiffres, les "/" s'inserent seuls.
 // Fonctionne de facon identique sur tous les appareils/navigateurs (contrairement a
@@ -448,7 +482,8 @@ function collectState(){
     }),
     hxPace:document.getElementById("hxPace").value,
     hxDate:document.getElementById("hxDate").value,
-    profile:document.getElementById("hybridProfile").value
+    profile:document.getElementById("hybridProfile").value,
+    hrMax:document.getElementById("hrMax").value
   };
 }
 function saveState(){ try{ localStorage.setItem(STORE_KEY, JSON.stringify(collectState())); }catch(e){} }
@@ -460,7 +495,7 @@ function todayFR(){
 }
 function addPerf(sel, time, date){
   var row=document.createElement("div"); row.className="perf";
-  row.innerHTML='<select class="dist">'+optionHtml(sel||5000)+'</select>'+
+  row.innerHTML='<div class="dist-field"><input class="dist" type="text" inputmode="numeric" placeholder="Distance" value="'+(sel?sel:"")+'"><span class="unit">m</span></div>'+
     '<input class="time" placeholder="mm:ss" value="'+(time?String(time).replace(/"/g,""):"")+'">'+
     '<input class="date date-input" type="text" inputmode="numeric" placeholder="jj/mm/aaaa" maxlength="10" value="'+toFRDisplay(date)+'">'+
     '<button class="rm" title="Retirer">&times;</button>';
@@ -469,17 +504,15 @@ function addPerf(sel, time, date){
   wireDateMask(row.querySelector(".date-input"));
 }
 document.getElementById("addBtn").onclick=function(){
-  // Nouvelle ligne prete a l'emploi : date du jour par defaut, meme distance que la derniere
-  // ligne existante (utile pour un test recurrent sur la meme distance chaque semaine).
-  var rows=[].slice.call(perfsEl.children);
-  var lastDist=rows.length ? rows[rows.length-1].querySelector(".dist").value : 5000;
-  addPerf(+lastDist||5000, "", todayFR());
+  // Nouvelle ligne : distance vide (l'utilisateur saisit librement), date du jour par defaut.
+  addPerf("", "", todayFR());
   saveState();
 };
 
+renderDistChips();
 var savedState=loadState();
 if(savedState && savedState.perfs && savedState.perfs.length){
-  savedState.perfs.forEach(function(p){ addPerf(+p.dist||5000, p.time, p.date); });
+  savedState.perfs.forEach(function(p){ addPerf(p.dist||"", p.time, p.date); });
 } else {
   addPerf(5000);
 }
@@ -488,12 +521,14 @@ if(savedState){
   document.getElementById("hxPace").value=savedState.hxPace||"";
   document.getElementById("hxDate").value=toFRDisplay(savedState.hxDate);
   if(savedState.profile) document.getElementById("hybridProfile").value=savedState.profile;
+  if(savedState.hrMax) document.getElementById("hrMax").value=savedState.hrMax;
 }
 perfsEl.addEventListener("input", saveState);
 perfsEl.addEventListener("change", saveState);
 document.getElementById("hxPace").addEventListener("input", saveState);
 document.getElementById("hxDate").addEventListener("change", saveState);
 document.getElementById("hybridProfile").addEventListener("change", saveState);
+document.getElementById("hrMax").addEventListener("input", function(){ saveState(); if(lastAllures) renderAllureCards(currentUnit); });
 
 // ============ Calcul ============
 document.getElementById("calcBtn").onclick=function(){
@@ -502,6 +537,23 @@ document.getElementById("calcBtn").onclick=function(){
     var d=+r.querySelector(".dist").value, t=parseTime(r.querySelector(".time").value), dt=r.querySelector(".date-input").value;
     if(d&&t) perfs.push({d:d,t:t,date:parseDateFR(dt)});
   });
+
+  // Avertissement (non bloquant) : le modele physiologique est fiable pour des efforts d'environ
+  // 3 min a 1h30. En dehors, on previent sans empecher le calcul. C'est la DUREE de l'effort qui
+  // compte, pas la distance ronde ou non.
+  var durWarn=document.getElementById("durationWarn");
+  var tooShort=perfs.some(function(p){ return p.t < 180; });
+  var tooLong=perfs.some(function(p){ return p.t > 5400; });
+  if(tooShort || tooLong){
+    var msg="Attention : ";
+    if(tooShort && tooLong) msg+="certaines performances durent moins de 3 min ou plus de 1h30";
+    else if(tooShort) msg+="une performance dure moins de 3 min";
+    else msg+="une performance dure plus de 1h30";
+    msg+=" - hors de la plage ou le modele est le plus fiable. Le resultat reste affiche, mais traite-le avec prudence (un effort d'environ 3 min a 1h30 donne l'estimation la plus solide).";
+    durWarn.textContent=msg; durWarn.style.display="block";
+  } else {
+    durWarn.style.display="none";
+  }
 
   var hxPace=parseTime(document.getElementById("hxPace").value); // s/km mesuré
   var hxDate=document.getElementById("hxDate").value;
