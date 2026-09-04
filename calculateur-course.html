@@ -139,29 +139,30 @@
       <option value="runner">Plutôt coureur pur (peu de travail stations sous fatigue)</option>
       <option value="hybrid">Hybride équilibré (course et stations regulierement combinees a l'entrainement)</option>
     </select>
+    <div id="profileAutoMsg" style="display:none;margin-top:10px;padding:10px 12px;border-radius:8px;background:var(--card2);border:1px solid var(--accent2);font-size:13px;line-height:1.5;"></div>
     <button type="button" class="allures-toggle" id="quizToggle" style="margin-top:8px;margin-bottom:0;">Je ne sais pas quel profil choisir</button>
     <div id="profileQuiz" style="display:none;margin-top:12px;padding:14px;border:1px solid var(--line);border-radius:9px;background:var(--card2);">
-      <p style="font-size:12.5px;color:var(--muted);margin:0 0 14px;">Réponds à ces 3 questions - on en déduit ton profil. Pas d'auto-évaluation, juste des faits.</p>
+      <p style="font-size:12.5px;color:var(--muted);margin:0 0 14px;">Si tu as renseigné 2 courses de distances différentes ci-dessus, le profil est déduit automatiquement de tes chiffres (plus fiable). Sinon, ces 3 questions factuelles servent de repli - basées sur ce que tu fais, pas sur ton ressenti.</p>
 
-      <div class="quiz-q" data-q="history">
-        <div class="quiz-label">Depuis combien de temps cours-tu régulièrement (sorties de 30 min ou plus) ?</div>
-        <button type="button" class="quiz-opt" data-v="0">Je ne cours pas / très rarement</button>
-        <button type="button" class="quiz-opt" data-v="1">Moins d'un an</button>
-        <button type="button" class="quiz-opt" data-v="2">Plus d'un an, régulièrement</button>
+      <div class="quiz-q" data-q="runvol">
+        <div class="quiz-label">Sur les 3 derniers mois, combien de séances de <b>course à pied</b> par semaine en moyenne ?</div>
+        <button type="button" class="quiz-opt" data-v="0">Moins d'une par semaine</button>
+        <button type="button" class="quiz-opt" data-v="1">1 à 2 par semaine</button>
+        <button type="button" class="quiz-opt" data-v="2">3 ou plus par semaine</button>
       </div>
 
-      <div class="quiz-q" data-q="freq">
-        <div class="quiz-label">Combien de fois par semaine cours-tu (hors muscu / CrossFit) ?</div>
-        <button type="button" class="quiz-opt" data-v="0">0 à 1 fois</button>
-        <button type="button" class="quiz-opt" data-v="1">2 à 3 fois</button>
-        <button type="button" class="quiz-opt" data-v="2">4 fois ou plus</button>
+      <div class="quiz-q" data-q="strengthvol">
+        <div class="quiz-label">Sur les 3 derniers mois, combien de séances de <b>force / musculation</b> par semaine en moyenne ?</div>
+        <button type="button" class="quiz-opt" data-v="2">Moins d'une par semaine</button>
+        <button type="button" class="quiz-opt" data-v="1">1 à 2 par semaine</button>
+        <button type="button" class="quiz-opt" data-v="0">3 ou plus par semaine</button>
       </div>
 
-      <div class="quiz-q" data-q="background">
-        <div class="quiz-label">Ton background sportif principal ?</div>
-        <button type="button" class="quiz-opt" data-v="0">Force / haltéro / CrossFit</button>
-        <button type="button" class="quiz-opt" data-v="1">Mixte (les deux à parts égales)</button>
-        <button type="button" class="quiz-opt" data-v="2">Endurance / course à pied</button>
+      <div class="quiz-q" data-q="longrun">
+        <div class="quiz-label">Sur les 3 derniers mois, la plus longue distance que tu as courue d'une traite (sans marcher) ?</div>
+        <button type="button" class="quiz-opt" data-v="0">Jamais plus de ~3 km</button>
+        <button type="button" class="quiz-opt" data-v="1">Entre 3 et 8 km</button>
+        <button type="button" class="quiz-opt" data-v="2">Plus de 8-10 km</button>
       </div>
 
       <div id="quizResult" style="display:none;margin-top:14px;padding-top:12px;border-top:1px solid var(--line);font-size:13px;"></div>
@@ -332,7 +333,7 @@ document.getElementById("quizToggle").addEventListener("click", function(){
   quiz.style.display=open?"block":"none";
   this.textContent=open?"Masquer le questionnaire":"Je ne sais pas quel profil choisir";
 });
-var quizAnswers={history:null, freq:null, background:null};
+var quizAnswers={runvol:null, strengthvol:null, longrun:null};
 var PROFILE_LABEL={force:"Plutôt orienté force", hybrid:"Hybride équilibré", runner:"Plutôt coureur pur"};
 [].slice.call(document.querySelectorAll(".quiz-q")).forEach(function(q){
   var key=q.dataset.q;
@@ -346,15 +347,17 @@ var PROFILE_LABEL={force:"Plutôt orienté force", hybrid:"Hybride équilibré",
   });
 });
 function maybeComputeProfile(){
-  if(quizAnswers.history===null || quizAnswers.freq===null || quizAnswers.background===null) return;
-  var score=quizAnswers.history + quizAnswers.freq + quizAnswers.background*2;
-  var profile = score<=2 ? "force" : (score<=5 ? "hybrid" : "runner");
+  if(quizAnswers.runvol===null || quizAnswers.strengthvol===null || quizAnswers.longrun===null) return;
+  // 3 questions factuelles (comportement, pas ressenti), orientees 0=force / 2=endurance.
+  // Le volume force est encode inverse dans le HTML (bcp de force -> 0). Poids egal. Score 0-6.
+  var score=quizAnswers.runvol + quizAnswers.strengthvol + quizAnswers.longrun;
+  var profile = score<=1 ? "force" : (score<=4 ? "hybrid" : "runner");
   document.getElementById("hybridProfile").value=profile;
   if(typeof saveState==="function") saveState();
   var res=document.getElementById("quizResult");
   res.style.display="block";
-  res.innerHTML="Profil déduit : <b style=\"color:var(--accent2)\">"+PROFILE_LABEL[profile]+"</b>. "+
-    "Il est déjà sélectionné ci-dessus - tu peux le changer manuellement si tu penses qu'il ne colle pas.";
+  res.innerHTML="Profil déduit du questionnaire : <b style=\"color:var(--accent2)\">"+PROFILE_LABEL[profile]+"</b>. "+
+    "Si tu ajoutes une 2e course de distance différente, la déduction par tes chiffres prendra le relais (plus fiable).";
 }
 
 // Chaque .hint.collapsible est masquée par défaut et précédée d'un petit "?" qui la déplie.
@@ -409,6 +412,30 @@ function currentProfile(){
 }
 function profileAdjust(){
   return PROFILE_ADJUST[currentProfile()] || 0;
+}
+// Detecte le profil a partir de 2+ performances a distances eloignees (rapport >=2x).
+// Prend la perf la plus courte et la plus longue, compare leurs scores VDOT. Ecart positif
+// (court meilleur que long) = profil force ; ecart nul/negatif = coureur. Met a jour le
+// selecteur et affiche un message. Retourne true si une detection a eu lieu.
+function autoDetectProfileFromPerfs(perfs){
+  var msg=document.getElementById("profileAutoMsg");
+  if(!perfs || perfs.length<2){ if(msg) msg.style.display="none"; return false; }
+  var sorted=perfs.slice().sort(function(a,b){ return a.d-b.d; });
+  var shortest=sorted[0], longest=sorted[sorted.length-1];
+  if(longest.d / shortest.d < 2){ if(msg) msg.style.display="none"; return false; } // distances trop proches
+  var vShort=vdotFromPerf(shortest.d, shortest.t);
+  var vLong=vdotFromPerf(longest.d, longest.t);
+  var gap=vShort-vLong;
+  var profile = gap>=4 ? "force" : (gap<=0 ? "runner" : "hybrid");
+  document.getElementById("hybridProfile").value=profile;
+  if(typeof saveState==="function") saveState();
+  if(msg){
+    var lbl={force:"Plutôt orienté force", hybrid:"Hybride équilibré", runner:"Plutôt coureur pur"}[profile];
+    msg.style.display="block";
+    msg.innerHTML="Profil déduit de tes performances (écart court/long) : <b style=\"color:var(--accent2)\">"+lbl+
+      "</b>. C'est la méthode la plus fiable - elle prime sur le questionnaire.";
+  }
+  return true;
 }
 // Taxe de fatigue estimee (s/km au-dessus de l'allure seuil S2), utilisee seulement si aucun Hyrox
 // n'est mesure. Bornes par profil auto-declare : un hybride bien entraine encaisse mieux la fatigue
@@ -757,6 +784,12 @@ document.getElementById("calcBtn").onclick=function(){
     totalWeight += w;
   });
   var vdot=weightedSum/totalWeight;
+
+  // Déduction automatique du profil si >=2 performances a distances eloignees (rapport >=2x).
+  // Le score VDOT sur distance courte vs longue revele le profil : un athlete force tient la vitesse
+  // sur court mais decroche sur long (ecart positif), un coureur reste coherent (ecart nul/negatif).
+  // Le modele est neutre (ecart 0 pour un athlete equilibre), donc l'ecart reflete le vrai profil.
+  autoDetectProfileFromPerfs(perfs);
 
   var pHard=paceFromVdot(vdot,FRAC.hard-hardAdjust());
   var vHard=vFromVo2((FRAC.hard-hardAdjust())*vdot); // vitesse au seuil, m/min
