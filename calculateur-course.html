@@ -300,7 +300,7 @@
     <p>Sur les efforts courts et intenses, la fréquence cardiaque réagit avec retard : elle continue de monter alors que l'effort est déjà fini. S'y fier te ferait courir trop vite. Sur ces zones, le chrono (ton allure cible) est le seul repère fiable - c'est pour ça que l'outil n'affiche pas de FC sur "fast".</p>
 
     <h3>Le profil (coureur / hybride / force) : ce qu'il change vraiment</h3>
-    <p>Un athlète orienté force a typiquement une économie de course moins développée qu'un coureur pur. À score de forme égal, il doit courir ses allures faciles un peu plus lentement pour rester dans la bonne zone. L'outil ajuste easy et tempo selon le profil.</p>
+    <p>Un athlète orienté force a typiquement une économie de course moins développée qu'un coureur pur. À score de forme égal, il doit courir ses allures faciles un peu plus lentement pour rester dans la bonne zone. L'outil ajuste l'allure easy selon le profil (la zone où l'écart entre profils est le plus clair physiologiquement). Les autres zones restent identiques : ajuster à moitié créerait des incohérences entre zones, on préfère ne pas ajuster que mal ajuster.</p>
     <p class="src">Ces ajustements s'appuient sur les fourchettes %VO2max distinctes par profil (Endurant vs Powerful) documentées par Upside Strength. Le profil "hybride" est une interpolation entre les deux - un repère raisonnable, pas une catégorie mesurée.</p>
 
     <h3>Le "race pace Hyrox" n'est pas ton allure de course classique</h3>
@@ -393,19 +393,14 @@ var PROFILE_ADJUST = {
   hybrid: 0.02,
   force:  0.05
 };
-// Ajustements de tempo (T1) et seuil/hard (T2) par profil, cette fois bases sur une source chiffree
-// (Upside Strength, "Endurance Physiology Cheat Sheet") qui donne des fourchettes %VO2max distinctes
-// pour profil Endurant vs Powerful : T1 Endurant 70-85%, T1 Powerful 50-70% (large ecart, ~17-20 pts).
-// "runner" correspond a peu pres a Endurant (mon calcul tempo dynamique tombe deja dans cette
-// fourchette sans ajustement), "force" a Powerful.
-var TEMPO_ADJUST = { runner:0, hybrid:0.08, force:0.15 };
-// Meme logique tentee pour le seuil (T2), mais retiree apres verification : seule la fourchette
-// Endurant (85-95%) est lisible dans le document, aucune fourchette Powerful fiable pour la
-// comparer. Sans donnee validee pour justifier un ecart specifique par profil sur cette zone
-// precise, le seuil reste fixe pour tout le monde plutot que d'extrapoler a l'aveugle.
-var HARD_ADJUST = { runner:0, hybrid:0, force:0 };
-function tempoAdjust(){ return TEMPO_ADJUST[currentProfile()] || 0; }
-function hardAdjust(){ return HARD_ADJUST[currentProfile()] || 0; }
+// NOTE sur les ajustements par profil : seul easy/recup est ajuste (via PROFILE_ADJUST ci-dessus),
+// car c'est la seule zone ou l'ecart entre profils est physiologiquement clair (economie de course,
+// dominante fibres) ET ou l'effet ne cree pas d'incoherence. On avait tente d'ajuster aussi tempo
+// et seuil (d'apres Upside Strength), mais : (1) la fourchette Powerful du seuil etait illisible dans
+// la source, (2) ajuster tempo sans ajuster seuil creait un trou de plusieurs dizaines de sec/km
+// entre les deux zones pour un profil force. Par coherence et fiabilite, tempo et seuil restent donc
+// fixes pour tous les profils. Mieux vaut ne pas ajuster que d'ajuster a moitie et creer une faille.
+function hardAdjust(){ return 0; }
 function currentProfile(){
   var el = document.getElementById("hybridProfile");
   return el ? el.value : "force";
@@ -422,10 +417,23 @@ function autoDetectProfileFromPerfs(perfs){
   if(!perfs || perfs.length<2){ if(msg) msg.style.display="none"; return false; }
   var sorted=perfs.slice().sort(function(a,b){ return a.d-b.d; });
   var shortest=sorted[0], longest=sorted[sorted.length-1];
-  if(longest.d / shortest.d < 2){ if(msg) msg.style.display="none"; return false; } // distances trop proches
+  // Seuil abaisse a 1.6x : un 3km vs 5km (1.67x) est deja informatif, inutile d'exiger 2x.
+  if(longest.d / shortest.d < 1.6){ if(msg) msg.style.display="none"; return false; }
   var vShort=vdotFromPerf(shortest.d, shortest.t);
   var vLong=vdotFromPerf(longest.d, longest.t);
   var gap=vShort-vLong;
+  // Garde-fou : un ecart hors [-6, +12] n'est pas plausible pour un vrai profil. C'est le signe
+  // qu'une des deux perfs n'a pas ete donnee a fond (ex. 1km couru en footing -> ecart tres negatif,
+  // ou sprint pur incomparable -> ecart tres positif). Dans ce cas on ne deduit PAS le profil, on
+  // previent plutot que de sortir un diagnostic faux.
+  if(gap < -6 || gap > 12){
+    if(msg){
+      msg.style.display="block";
+      msg.innerHTML="Tes deux performances donnent un écart incohérent pour déduire un profil - "+
+        "l'une des deux n'a probablement pas été courue à fond. Vérifie tes temps, ou choisis ton profil manuellement.";
+    }
+    return false;
+  }
   var profile = gap>=4 ? "force" : (gap<=0 ? "runner" : "hybrid");
   document.getElementById("hybridProfile").value=profile;
   if(typeof saveState==="function") saveState();
@@ -769,21 +777,27 @@ document.getElementById("calcBtn").onclick=function(){
     var cutoff=new Date(newest.getTime()-365*864e5);
     perfs=perfs.filter(function(p){return p.date>=cutoff;});
   }
-  // Moyenne ponderee par recence : une perf proche de la plus recente compte presque a 100%,
-  // une perf datant de pres de 12 mois compte pour environ 40%. Choix de coaching (pas une
-  // formule scientifique), pour eviter qu'une perf tres ancienne pese autant qu'une perf recente.
-  var totalWeight=0, weightedSum=0;
-  var newestPerf = perfs.length>1 ? perfs.reduce(function(a,b){return b.date>a.date?b:a;}) : null;
-  perfs.forEach(function(pf){
-    var w=1;
-    if(newestPerf && pf.date){
-      var daysAgo=(newestPerf.date-pf.date)/864e5;
-      w=Math.max(0.4, 1-0.6*(daysAgo/365));
-    }
-    weightedSum += vdotFromPerf(pf.d,pf.t)*w;
-    totalWeight += w;
-  });
-  var vdot=weightedSum/totalWeight;
+
+  // ---- Choix de la performance de REFERENCE pour le score (zones) ----
+  // On ne moyenne PLUS les VDOT de distances differentes : moyenner un sprint (VDOT haut) et un
+  // effort long (VDOT bas) donnerait un score batard qui ne correspond a aucune realite, et
+  // surestimerait les allures d'endurance d'un profil force. A la place, on choisit UNE perf de
+  // reference reelle. Les zones easy/tempo/seuil sont des efforts d'ENDURANCE : la perf la plus
+  // longue les predit le mieux (moins polluee par la puissance anaerobie ou un depart pas a fond).
+  // Mais on croise avec la recence : une perf longue mais ancienne ne doit pas primer sur une
+  // perf recente. Regle : parmi les perfs recentes (< 4 mois de la plus recente), on prend la plus
+  // longue ; a defaut, la plus recente tout court.
+  var refPerf;
+  if(perfs.length===1){
+    refPerf=perfs[0];
+  } else {
+    var mostRecent=perfs.reduce(function(a,b){return b.date>a.date?b:a;});
+    var recentCutoff=new Date(mostRecent.date.getTime()-122*864e5); // ~4 mois
+    var recentPerfs=perfs.filter(function(p){return p.date>=recentCutoff;});
+    // parmi les perfs recentes, la plus longue (meilleure pour les zones d'endurance)
+    refPerf=recentPerfs.reduce(function(a,b){return b.d>a.d?b:a;});
+  }
+  var vdot=vdotFromPerf(refPerf.d, refPerf.t);
 
   // Déduction automatique du profil si >=2 performances a distances eloignees (rapport >=2x).
   // Le score VDOT sur distance courte vs longue revele le profil : un athlete force tient la vitesse
@@ -818,7 +832,7 @@ document.getElementById("calcBtn").onclick=function(){
 
   var allures=[
     {n:"easy", tag:"base", cls:"pill", lo:pEasyF, hi:pEasyS, hrZone:{lo:65,hi:79}, use:"Course facile, conversationnelle. Base aérobie."},
-    {n:"tempo", tag:"Z3 / M", cls:"pill", lo:paceFromVdot(vdot,mPct(vdot)-tempoAdjust())-5, hi:paceFromVdot(vdot,mPct(vdot)-tempoAdjust())+5, hrZone:{lo:80,hi:90}, use:"Allure soutenue continue, a froid (hors contexte Hyrox). Blocs tempo 15-30 min, allure semi/marathon."},
+    {n:"tempo", tag:"Z3 / M", cls:"pill", lo:paceFromVdot(vdot,mPct(vdot))-5, hi:paceFromVdot(vdot,mPct(vdot))+5, hrZone:{lo:80,hi:90}, use:"Allure soutenue continue, a froid (hors contexte Hyrox). Blocs tempo 15-30 min, allure semi/marathon."},
     {n:"hard", tag:"T / seuil", cls:"pill", lo:pHard-4, hi:pHard+4, hrZone:{lo:88,hi:92}, use:"Comfortably hard. Blocs longs (1600 m, 5000 m)."},
     {n:"very hard", tag:"I / VO2max", cls:"pill", lo:paceFromVdot(vdot,1.00)-4, hi:paceFromVdot(vdot,1.00)+4, hrZone:{lo:95,hi:100}, use:"L'allure la plus dure. Fractions 3-5 min, ça pique. Récup active entre les fractions : au jog (rythme qui permet de récupérer sans marcher), jamais à l'arrêt complet."},
     {n:"fast", tag:"R / reps", cls:"pill", lo:paceFromVdot(vdot,FRAC.fast)-4, hi:paceFromVdot(vdot,FRAC.fast)+4, hrNotRel:true, use:"Très rapide, foulées et sensations propres (200-400 m). Récup complète au jog entre les fractions, doit ressortir léger."}
