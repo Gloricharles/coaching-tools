@@ -1,0 +1,1284 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#141210">
+<title>Calculateur d'allure course à pied</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Work+Sans:wght@400;500;600;700&family=Bricolage+Grotesque:wght@700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#F5E9DD; --card:#FCF6EE; --card2:#F0E4D5; --line:#E0D2C0;
+    --txt:#576777; --muted:#6E7885; --accent:#576777; --accent2:#495563; --warn:#B06A3D;
+    --on-accent:#FCF6EE;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--txt);
+    font-family:"Work Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    line-height:1.5;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:720px;margin:0 auto;padding:16px 16px 64px}
+  header{text-align:center;padding:4px 0 12px}
+  .logo-wordmark svg{width:min(82%,320px);height:auto;color:var(--txt)}
+  .sub{color:var(--muted);font-size:13px;margin-top:4px;letter-spacing:.02em}
+  .tab-panel{display:none}
+  .tab-panel.active{display:block}
+  .methodo h3{color:var(--accent);font-size:16px;margin:24px 0 8px;font-weight:800}
+  .methodo h3:first-child{margin-top:8px}
+  .methodo p{font-size:13.5px;line-height:1.6;color:var(--txt);margin:0 0 10px}
+  .methodo .warn-box{border-left:3px solid var(--warn);background:var(--card2);padding:10px 14px;
+    border-radius:0 8px 8px 0;margin:10px 0;font-size:13px;line-height:1.55}
+  .methodo .src{font-size:11.5px;color:var(--muted);font-style:italic}
+  h2{font-family:"Bricolage Grotesque","Work Sans",sans-serif;font-size:13px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);
+    margin:28px 0 12px;font-weight:800}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:14px}
+  .perf{display:grid;grid-template-columns:1.1fr 1fr 1.1fr auto;gap:8px;align-items:center;margin-bottom:8px}
+  .dist-field{position:relative}
+  .dist-field input{width:100%}
+  .dist-field .unit{position:absolute;right:12px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:13px;pointer-events:none}
+  .dist-chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+  .dist-chip{background:var(--card2);border:1px solid var(--line);color:var(--muted);border-radius:7px;
+    padding:5px 11px;font-size:12.5px;font-family:inherit;cursor:pointer}
+  .dist-chip:hover{border-color:var(--accent2);color:var(--accent2)}
+  .hyrox{display:grid;grid-template-columns:1.3fr 1.1fr;gap:8px;align-items:center}
+  select,input{width:100%;background:var(--card2);border:1px solid var(--line);color:var(--txt);
+    border-radius:9px;padding:11px 10px;font-size:15px;font-family:inherit;-webkit-appearance:none;appearance:none}
+  select{background-image:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%23A99E92" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>');
+    background-repeat:no-repeat;background-position:right 12px center;background-size:16px;padding-right:38px;cursor:pointer}
+  select:focus,input:focus{outline:none;border-color:var(--accent)}
+  input::placeholder{color:var(--muted)}
+  .rm{background:transparent;border:none;color:var(--muted);font-size:20px;cursor:pointer;padding:6px;line-height:1}
+  .rm:hover{color:var(--accent)}
+  .add{background:transparent;border:1px dashed var(--line);color:var(--accent2);
+    width:100%;padding:11px;border-radius:9px;cursor:pointer;font-size:14px;font-family:inherit;margin-top:4px}
+  .add:hover{border-color:var(--accent2)}
+  .hint{color:var(--muted);font-size:12.5px;margin-top:10px}
+  .help-btn{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;
+    border-radius:50%;border:1px solid var(--line);background:var(--card2);color:var(--muted);
+    font-size:11.5px;font-weight:700;cursor:pointer;font-family:inherit;line-height:1;padding:0;
+    margin-left:8px;vertical-align:middle;transition:all .15s}
+  .help-btn:hover{border-color:var(--accent2);color:var(--accent2)}
+  .help-btn.open{background:var(--accent2);color:var(--card);border-color:var(--accent2)}
+  .hint.collapsible{display:none}
+  .hint.collapsible.open{display:block}
+  .quiz-q{margin-bottom:16px}
+  .quiz-label{font-size:13px;font-weight:600;color:var(--txt);margin-bottom:8px;line-height:1.4}
+  .quiz-opt{display:block;width:100%;text-align:left;background:var(--card);border:1px solid var(--line);
+    color:var(--txt);border-radius:8px;padding:9px 12px;font-size:13px;font-family:inherit;cursor:pointer;
+    margin-bottom:6px;transition:all .12s}
+  .quiz-opt:hover{border-color:var(--accent2)}
+  .quiz-opt.selected{border-color:var(--accent2);background:var(--accent2);color:var(--card);font-weight:600}
+  .go{background:var(--accent);color:var(--on-accent);border:none;width:100%;padding:14px;border-radius:11px;
+    font-size:16px;font-weight:800;cursor:pointer;font-family:"Bricolage Grotesque","Work Sans",sans-serif;letter-spacing:.03em;margin-top:6px}
+  .go:active{transform:translateY(1px)}
+  table{width:100%;border-collapse:collapse;font-size:14.5px}
+  th,td{text-align:left;padding:9px 8px;border-bottom:1px solid var(--line)}
+  th{color:var(--muted);font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.05em}
+  td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+  .allure{font-weight:700}
+  .pace-card{padding:10px 0;border-bottom:1px solid var(--line);cursor:pointer}
+  .pace-card:first-child{padding-top:0}
+  .pace-card:last-child{border-bottom:none;padding-bottom:0}
+  .pace-card-head{display:flex;align-items:baseline;justify-content:space-between;gap:8px}
+  .pace-name{font-weight:700;font-size:14.5px;white-space:nowrap;display:flex;align-items:baseline;gap:6px}
+  .zone-badge{padding:2px 8px;border-radius:6px;color:#14110D;font-weight:800}
+  .zone-easy{background:#6FA8DC}
+  .zone-tempo{background:#5BC2A0}
+  .zone-hard{background:#E8923E}
+  .zone-veryhard{background:#E0483F}
+  .zone-fast{background:#E93D82;color:#14110D}
+  .zone-race{background:#B98CE0}
+  .pace-chevron{color:var(--muted);font-size:11px;transition:transform .15s;display:inline-block}
+  .pace-card.open .pace-chevron{transform:rotate(90deg)}
+  .pace-range{font-size:17px;font-weight:800;font-variant-numeric:tabular-nums;white-space:nowrap;color:var(--txt)}
+  .pace-sub{font-size:11.5px;color:var(--muted);margin-top:6px;line-height:1.4;display:none}
+  .pace-card.open .pace-sub{display:block}
+  .allures-toggle{background:none;border:none;color:var(--accent2);font-size:12.5px;font-family:inherit;
+    cursor:pointer;padding:0;margin-bottom:10px;text-decoration:underline}
+  .unitbtn{background:var(--card2);border:none;color:var(--muted);font-size:11.5px;font-family:inherit;
+    padding:6px 10px;cursor:pointer}
+  .unitbtn.active{background:var(--accent2);color:var(--card)}
+  .pace-sub b{color:var(--accent2);font-weight:600}
+  .distbtn{background:var(--card2);border:1px solid var(--line);color:var(--txt);border-radius:8px;
+    padding:7px 13px;font-size:13.5px;font-family:inherit;cursor:pointer}
+  .distbtn.active{border-color:var(--accent2);color:var(--accent2)}
+  .distbtn:hover{border-color:var(--accent2)}
+  .pill{display:inline-block;font-size:11px;padding:2px 7px;border-radius:20px;background:var(--card2);
+    color:var(--muted);margin-left:6px;font-weight:600;vertical-align:middle}
+  .pill.meas{background:rgba(21,181,166,.15);color:var(--accent2)}
+  .def{color:var(--muted);font-size:12.5px}
+  .ref{color:var(--accent2);font-weight:700;font-size:15px}
+  .hidden{display:none}
+  .note{font-size:12.5px;color:var(--muted);margin-top:12px;padding:12px;background:var(--card2);
+    border-radius:10px;border-left:3px solid var(--warn)}
+  .diag{font-size:13px;color:var(--txt);margin-top:12px;padding:12px 14px;background:rgba(21,181,166,.08);
+    border-radius:10px;border-left:3px solid var(--accent2)}
+  .diag b{color:var(--accent2)}
+  .foot{text-align:center;color:var(--muted);font-size:11.5px;margin-top:32px}
+  a{color:var(--accent2)}
+  @media(max-width:520px){
+    .perf{grid-template-columns:1fr 1fr auto}
+    .perf .date{grid-column:1 / 3}
+    .hyrox{grid-template-columns:1fr}
+  }
+  /* ===== Réorganisation avant/après calcul ===== */
+  .summary-bar{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px;
+    display:flex;align-items:center;justify-content:space-between;gap:12px;cursor:pointer;margin-bottom:16px}
+  .summary-bar .info{font-size:13.5px;min-width:0}
+  .summary-bar .info b{font-weight:700}
+  .summary-bar .info .meta{color:var(--muted);font-size:12px;margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .summary-bar .edit{font-family:"Bricolage Grotesque","Work Sans",sans-serif;font-weight:700;font-size:12.5px;
+    text-transform:uppercase;letter-spacing:.03em;color:var(--warn);border:1px solid var(--warn);
+    border-radius:8px;padding:7px 14px;white-space:nowrap;background:none;cursor:pointer}
+  .tools-bar{display:flex;gap:8px;margin:0 0 20px;overflow-x:auto;padding-bottom:2px;-webkit-overflow-scrolling:touch}
+  .tools-bar .tbtn{flex:1;min-width:82px;background:var(--card);border:1px solid var(--line);border-radius:11px;
+    padding:11px 6px;text-align:center;cursor:pointer;color:var(--muted);font-family:inherit;font-size:11.5px;font-weight:600;line-height:1.25}
+  .tools-bar .tbtn .ic{width:20px;height:20px;margin:0 auto 5px;display:block;color:var(--warn)}
+  .tools-bar .tbtn:hover{border-color:var(--warn);color:var(--warn)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <span class="logo-wordmark"><svg xmlns="http://www.w3.org/2000/svg" viewBox="67 280 1643 327">
+  <style>
+    .fond   { fill: #F5E9DD; }   /* supprimer le rect pour un fond transparent */
+    .bleu   { fill: #576777; fill-rule: evenodd; }
+    .or     { fill: #D8B78D; }
+    .slogan { fill: #576777; font-family: 'Helvetica Neue', Arial, sans-serif;
+              font-size: 22px; font-weight: 400; stroke: #576777; stroke-width: 0.5; }
+  </style>
+  <g id="icone">
+    <path id="G-cercle" class="bleu" d="M362.15,385.19A143.7,143.7 0 1 0 373.38,425.0L340.8,425.0L323.33,452.3L348.17,452.3A115.0,115.0 0 1 1 163.16,349.56A135.9,135.9 0 0 1 362.15,385.19Z"/>
+    <g id="bandes-icone" class="or">
+      <polygon points="202.8,425 220.8,425 203.33,452.3 185.33,452.3"/>
+      <polygon points="237.3,425 255.3,425 237.83,452.3 219.83,452.3"/>
+      <polygon points="271.8,425 289.8,425 272.33,452.3 254.33,452.3"/>
+      <polygon points="306.3,425 324.3,425 306.83,452.3 288.83,452.3"/>
+    </g>
+  </g>
+  <g id="beglorious" class="bleu" transform="matrix(1 0 -0.244 1 115.046 0)">
+    <path id="B" d="M459.2,374.25L545,374.25A19.0,19.0 0 0 1 564,393.25L564,410.88C564,416.38 561.4,420.68 558.2,422.88C561.4,425.07 564,429.38 564,434.88L564,452.5A19.0,19.0 0 0 1 545,471.5L459.2,471.5ZM478.75,392.45L478.75,453.3L540.95,453.3A3.5,3.5 0 0 0 544.45,449.8L544.45,435.48A3.5,3.5 0 0 0 540.95,431.98L489.5,431.98L489.5,413.77L540.95,413.77A3.5,3.5 0 0 0 544.45,410.27L544.45,395.95A3.5,3.5 0 0 0 540.95,392.45Z"/>
+    <path id="E" d="M591.5,393.25A19,19 0 0 1 610.5,374.25L700,374.25L700,392.45L591.5,392.45ZM591.5,413.77L685.2,413.77L685.2,431.98L611.05,431.98L611.05,449.8A3.5,3.5 0 0 0 614.55,453.3L700,453.3L700,471.5L610.5,471.5A19,19 0 0 1 591.5,452.5Z"/>
+    <path id="G" d="M730.8,393.25A19,19 0 0 1 749.8,374.25L840,374.25L840,392.45L753.85,392.45A3.5,3.5 0 0 0 750.35,395.95L750.35,449.8A3.5,3.5 0 0 0 753.85,453.3L820.45,453.3L820.45,431.98L783.5,431.98L783.5,413.77L840,413.77L840,471.5L749.8,471.5A19,19 0 0 1 730.8,452.5Z"/>
+    <path id="L" d="M863,374.25L882.55,374.25L882.55,449.8A3.5,3.5 0 0 0 886.05,453.3L967,453.3L967,471.5L882,471.5A19,19 0 0 1 863,452.5Z"/>
+    <path id="O" d="M988.1,393.25A19,19 0 0 1 1007.1,374.25L1083.5,374.25A19,19 0 0 1 1102.5,393.25L1102.5,452.5A19,19 0 0 1 1083.5,471.5L1007.1,471.5A19,19 0 0 1 988.1,452.5ZM1011.15,392.45A3.5,3.5 0 0 0 1007.65,395.95L1007.65,449.8A3.5,3.5 0 0 0 1011.15,453.3L1079.45,453.3A3.5,3.5 0 0 0 1082.95,449.8L1082.95,395.95A3.5,3.5 0 0 0 1079.45,392.45Z"/>
+    <path id="O2" d="M1296.5,393.25A19,19 0 0 1 1315.5,374.25L1392.25,374.25A19,19 0 0 1 1411.25,393.25L1411.25,452.5A19,19 0 0 1 1392.25,471.5L1315.5,471.5A19,19 0 0 1 1296.5,452.5ZM1319.55,392.45A3.5,3.5 0 0 0 1316.05,395.95L1316.05,449.8A3.5,3.5 0 0 0 1319.55,453.3L1388.2,453.3A3.5,3.5 0 0 0 1391.7,449.8L1391.7,395.95A3.5,3.5 0 0 0 1388.2,392.45Z"/>
+    <path id="R" d="M1122.1,374.25L1214.2,374.25A19,19 0 0 1 1233.2,393.25L1233.2,412.98A19,19 0 0 1 1214.2,431.98L1210.52,431.98L1237.2,471.5L1214.9,471.5L1188.22,431.98L1141.65,431.98L1141.65,471.5L1122.1,471.5L1122.1,413.77L1210.15,413.77A3.5,3.5 0 0 0 1213.65,410.27L1213.65,395.95A3.5,3.5 0 0 0 1210.15,392.45L1122.1,392.45Z"/>
+    <path id="I" d="M1256.2,374.25L1275.75,374.25L1275.75,471.5L1256.2,471.5Z"/>
+    <path id="U" d="M1431.8,374.25L1451.35,374.25L1451.35,449.8A3.5,3.5 0 0 0 1454.85,453.3L1523.75,453.3A3.5,3.5 0 0 0 1527.25,449.8L1527.25,374.25L1546.8,374.25L1546.8,452.5A19,19 0 0 1 1527.8,471.5L1450.8,471.5A19,19 0 0 1 1431.8,452.5Z"/>
+    <path id="S" d="M1565.5,393.25A19,19 0 0 1 1584.5,374.25L1666.5,374.25L1666.5,392.45L1588.55,392.45A3.5,3.5 0 0 0 1585.05,395.95L1585.05,410.27A3.5,3.5 0 0 0 1588.55,413.77L1647.5,413.77A19,19 0 0 1 1666.5,432.77L1666.5,452.5A19,19 0 0 1 1647.5,471.5L1565.5,471.5L1565.5,453.3L1643.45,453.3A3.5,3.5 0 0 0 1646.95,449.8L1646.95,435.48A3.5,3.5 0 0 0 1643.45,431.98L1584.5,431.98A19,19 0 0 1 1565.5,412.98Z"/>
+  </g>
+  <rect id="filet" class="or" x="451" y="515.2" width="1225.9" height="6.6"/>
+  <text id="slogan" class="slogan" x="451" y="572" textLength="1043" lengthAdjust="spacing">TRAINING TO BE HAPPY-HEALTHY-STRONG-FAST</text>
+  <g id="bandes-slogan" class="or">
+    <polygon points="1541.1,546.2 1561.1,546.2 1541.64,576.6 1521.64,576.6"/>
+    <polygon points="1579.7,546.2 1599.7,546.2 1580.24,576.6 1560.24,576.6"/>
+    <polygon points="1618.3,546.2 1638.3,546.2 1618.84,576.6 1598.84,576.6"/>
+    <polygon points="1656.9,546.2 1676.9,546.2 1657.44,576.6 1637.44,576.6"/>
+  </g>
+</svg></span>
+    <div class="sub">Calculateur d'allure course à pied</div>
+  </header>
+
+  <!-- Bandeau résumé (visible après calcul, cliquable pour modifier) -->
+  <div id="summaryBar" class="summary-bar hidden">
+    <div class="info"><b id="summaryMain">-</b><div class="meta" id="summaryMeta">-</div></div>
+    <button type="button" class="edit" id="editBtn">Modifier</button>
+  </div>
+
+  <!-- Barre outils accès rapide (visible après calcul) -->
+  <div id="toolsBar" class="tools-bar hidden">
+    <button type="button" class="tbtn" data-scroll="convTemps"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8v4l3 2"/></svg>Allure &rarr; temps</button>
+    <button type="button" class="tbtn" data-scroll="convKmhSection"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17L17 7M8 7h9v9"/></svg>&harr; km/h</button>
+    <button type="button" class="tbtn" data-tool="export"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12m0 0l-4-4m4 4l4-4M4 21h16"/></svg>Image</button>
+    <button type="button" class="tbtn" data-tool="methodo"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11 12h1v4h1"/></svg>Méthodo</button>
+  </div>
+
+  <div id="inputZone">
+  <h2>Ton profil</h2>
+  <div class="card">
+    <label for="hybridProfile" style="display:block;font-size:12.5px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:6px;">Choisis ton profil</label>
+    <select id="hybridProfile">
+      <option value="force">Plutôt orienté force (peu d'entraînement course/stations combinées)</option>
+      <option value="runner">Plutôt coureur pur (peu de travail stations sous fatigue)</option>
+      <option value="hybrid">Hybride équilibré (course et stations regulierement combinees a l'entrainement)</option>
+    </select>
+    <div id="profileAutoMsg" style="display:none;margin-top:10px;padding:10px 12px;border-radius:8px;background:var(--card2);border:1px solid var(--accent2);font-size:13px;line-height:1.5;"></div>
+    <button type="button" class="allures-toggle" id="quizToggle" style="margin-top:8px;margin-bottom:0;">Je ne sais pas quel profil choisir</button>
+    <div id="profileQuiz" style="display:none;margin-top:12px;padding:14px;border:1px solid var(--line);border-radius:9px;background:var(--card2);">
+      <p style="font-size:12.5px;color:var(--muted);margin:0 0 14px;">Si tu as renseigné 2 courses de distances différentes ci-dessus, le profil est déduit automatiquement de tes chiffres (plus fiable). Sinon, ces 3 questions factuelles servent de repli - basées sur ce que tu fais, pas sur ton ressenti.</p>
+
+      <div class="quiz-q" data-q="runvol">
+        <div class="quiz-label">Sur les 3 derniers mois, combien de séances de <b>course à pied</b> par semaine en moyenne ?</div>
+        <button type="button" class="quiz-opt" data-v="0">Moins d'une par semaine</button>
+        <button type="button" class="quiz-opt" data-v="1">1 à 2 par semaine</button>
+        <button type="button" class="quiz-opt" data-v="2">3 ou plus par semaine</button>
+      </div>
+
+      <div class="quiz-q" data-q="strengthvol">
+        <div class="quiz-label">Sur les 3 derniers mois, combien de séances de <b>force / musculation</b> par semaine en moyenne ?</div>
+        <button type="button" class="quiz-opt" data-v="2">Moins d'une par semaine</button>
+        <button type="button" class="quiz-opt" data-v="1">1 à 2 par semaine</button>
+        <button type="button" class="quiz-opt" data-v="0">3 ou plus par semaine</button>
+      </div>
+
+      <div class="quiz-q" data-q="longrun">
+        <div class="quiz-label">Sur les 3 derniers mois, la plus longue distance que tu as courue d'une traite (sans marcher) ?</div>
+        <button type="button" class="quiz-opt" data-v="0">Jamais plus de ~3 km</button>
+        <button type="button" class="quiz-opt" data-v="1">Entre 3 et 8 km</button>
+        <button type="button" class="quiz-opt" data-v="2">Plus de 8-10 km</button>
+      </div>
+
+      <div id="quizResult" style="display:none;margin-top:14px;padding-top:12px;border-top:1px solid var(--line);font-size:13px;"></div>
+    </div>
+    <p class="hint collapsible">Influence tes allures easy/récup (un profil orienté force doit courir plus lentement qu'un
+      coureur pur pour rester dans la bonne zone, à score de forme égal) et, en l'absence de Hyrox mesuré,
+      affine la fourchette de "taxe de fatigue" estimée sur le race pace.</p>
+    <label for="hrMax" style="display:block;font-size:12.5px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-top:14px;margin-bottom:6px;">FC max (optionnel)</label>
+    <input id="hrMax" type="text" inputmode="numeric" placeholder="ex. 190 bpm" maxlength="3">
+    <p class="hint collapsible">Uniquement si tu connais ta vraie FC max, mesurée sur le terrain (test maximal réel). N'utilise
+      pas une formule d'âge type "220 - âge" : ces formules ne sont pas fiables et fausseraient tes zones. Si tu
+      ne l'as jamais mesurée, laisse vide - les % restent affichés et suffisent.</p>
+  </div>
+
+  <h2>Tes performances récentes</h2>
+  <div class="card">
+    <div class="dist-chips" id="distChips"></div>
+    <div id="perfs"></div>
+    <button class="add" id="addBtn">+ Ajouter une performance</button>
+    <button type="button" class="allures-toggle" id="estimToggle" style="margin-top:8px;margin-bottom:0;">Je n'ai pas de perf récente ?</button>
+    <div id="estimBlock" style="display:none;margin-top:12px;padding:14px;border:1px solid var(--line);border-radius:9px;background:var(--card2);">
+      <p style="font-size:12.5px;color:var(--muted);margin:0 0 14px;">Pas de course récente ? On peut estimer tes allures. Ces valeurs sont <b>provisoires</b> - remplace-les par une vraie perf dès que possible. Réponds sur ta forme <b>actuelle</b>, pas sur un objectif.</p>
+
+      <div class="quiz-q" data-eq="chrono">
+        <div class="quiz-label">Aujourd'hui, à fond, tu penses courir un 5 km en...</div>
+        <button type="button" class="quiz-opt" data-sec="1140">Moins de 20 min</button>
+        <button type="button" class="quiz-opt" data-sec="1350">20 à 25 min</button>
+        <button type="button" class="quiz-opt" data-sec="1650">25 à 30 min</button>
+        <button type="button" class="quiz-opt" data-sec="1950">30 à 35 min</button>
+        <button type="button" class="quiz-opt" data-sec="2250">35 à 40 min</button>
+        <button type="button" class="quiz-opt" data-sec="2550">Plus de 40 min</button>
+        <button type="button" class="quiz-opt" data-eq-nokm="1">Je ne cours pas 5 km d'une traite</button>
+      </div>
+
+      <div id="estimFooting" style="display:none;margin-top:14px;padding-top:12px;border-top:1px solid var(--line);">
+        <div class="quiz-label">Sinon : à quelle allure fais-tu tes footings faciles ? (mm:ss / km)</div>
+        <input id="estimFootPace" inputmode="text" placeholder="ex. 6:30" style="margin-top:8px;">
+        <p class="hint" style="margin-top:8px;">Repli si tu ne peux pas estimer un 5 km. L'allure facile connue permet quand même de caler tes zones.</p>
+      </div>
+
+      <div id="estimBegin" style="display:none;margin-top:14px;padding-top:12px;border-top:1px solid var(--line);font-size:13px;line-height:1.5;color:var(--txt);">
+        Tu débutes la course : pas d'allures chiffrées fiables pour toi pour l'instant. Cours au <b>ressenti</b> : tes séances faciles doivent rester conversationnelles (tu peux parler en courant). Enchaîne course/marche si besoin. Reviens ici avec un vrai temps dès que tu cours 3-5 km d'une traite.
+      </div>
+
+      <div id="estimResult" style="display:none;margin-top:14px;padding-top:12px;border-top:1px solid var(--line);font-size:13px;"></div>
+    </div>
+    <p class="hint collapsible">N'importe quelle distance déjà réalisée (en mètres) + ton temps. Tu peux entrer une distance
+      exacte (ex. 8423 m) ou utiliser un test à durée fixe (ex. la distance couverte en 40 min). Les raccourcis
+      ci-dessus remplissent juste la distance. Les perfs datées de 12 mois ou moins par rapport à la plus récente
+      sont moyennées ; les plus anciennes sont ignorées.</p>
+  </div>
+
+  <h2>Ton dernier Hyrox <span style="text-transform:none;letter-spacing:0;font-weight:400;color:var(--muted)">(optionnel)</span></h2>
+  <div class="card">
+    <div class="hyrox">
+      <input id="hxPace" placeholder="Allure moy. course (mm:ss / km)">
+      <input id="hxDate" type="text" class="date-input" inputmode="numeric" placeholder="jj/mm/aaaa" maxlength="10">
+    </div>
+    <p class="hint collapsible">Ton allure moyenne de course sur un Hyrox passé (temps de course total / 8 km). Sert uniquement à
+      caler ton race pace réel et à mesurer la taxe de fatigue - elle ne touche pas tes zones d'entraînement.
+      N'invente pas cette allure si tu n'as jamais fait de Hyrox : laisse le champ vide. Si tu en as fait un,
+      utilise ton temps officiellement enregistré, que tu retrouves sur l'app ROXFIT ou sur hyrox.com (section
+      Results, recherche par nom).</p>
+    <button class="go" id="calcBtn">Calculer mes allures</button>
+    <p class="hint" id="dateError" style="display:none;color:var(--accent);font-weight:600;">Ajoute une date à chaque performance renseignée : sans ça, impossible de savoir laquelle est la plus récente pour la moyenne.</p>
+    <p class="hint" id="durationWarn" style="display:none;color:var(--warn);font-weight:600;"></p>
+  </div>
+  </div><!-- /inputZone -->
+
+  <div id="out" class="hidden">
+    <h2>Allures d'entraînement</h2>
+    <div class="card">
+      <div style="margin-bottom:10px">Référence estimée (~1h à allure seuil) : <span class="ref" id="ref5k"></span></div>
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px;flex-wrap:wrap;">
+        <button type="button" class="allures-toggle" id="toggleAllBtn" style="margin-bottom:0;">Tout afficher (RPE, FC, usage)</button>
+        <div style="display:flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;">
+          <button type="button" class="unitbtn active" id="unitPace" data-unit="pace">min/km</button>
+          <button type="button" class="unitbtn" id="unitKmh" data-unit="kmh">km/h (tapis)</button>
+        </div>
+      </div>
+      <div id="allures"></div>
+      <button type="button" class="allures-toggle" id="exportImgBtn" style="margin-top:10px;">Telecharger en image (pense-bete)</button>
+      <p class="hint collapsible" style="margin-top:10px;">La FC varie beaucoup d'une personne à l'autre - les %FCmax indiqués sont ceux des zones de Daniels
+        (VDOT), un repère de population, pas une mesure individuelle. La référence la plus fiable reste ta FC seuil
+        réelle. Sur very hard et fast, la FC réagit avec retard : pilote au chrono, pas au cardio.</p>
+      <div class="note" id="raceNote"></div>
+      <div class="diag hidden" id="diag"></div>
+    </div>
+
+    <h2>Équivalences théoriques par distance</h2>
+    <div class="card">
+      <table>
+        <thead><tr><th>Distance</th><th class="num">Temps</th><th class="num">Allure</th></tr></thead>
+        <tbody id="equiv"></tbody>
+      </table>
+      <p class="hint collapsible">Équivalences théoriques, basées sur ta seule capacité aérobie/vitesse. Elles ne garantissent pas le chrono réel sur une distance non entraînée spécifiquement - le marathon en particulier dépend aussi de l'endurance spécifique, du ravitaillement et du mental, pas seulement du moteur aérobie.</p>
+      <p class="hint collapsible" style="margin-top:10px;padding-top:10px;border-top:1px solid var(--line);">
+        <b style="color:var(--txt)">Fiabilité :</b> bonne de 3 km au marathon (formule vérifiée contre des références réelles publiées, écart sous 0,1%) ;
+        approximative sur 1 km (en dessous de la plage officiellement étudiée, écart mesuré autour de 4%).
+      </p>
+    </div>
+  </div>
+
+  <div id="noData" class="hidden">
+    <div class="card">
+      <div class="note">Aucune performance renseignée. Sans donnée chiffrée, pilote au ressenti :
+        les séances easy à RPE 3-4, le travail hard (seuil 2) à RPE 7, les reps fast à RPE 9.</div>
+    </div>
+  </div>
+
+  <h2 id="convTemps">Convertisseur allure &rarr; temps</h2>
+  <div class="card">
+    <select id="convZone" style="margin-bottom:10px;display:none;"></select>
+    <div class="hyrox">
+      <input id="convPace" inputmode="text" placeholder="Allure (mm:ss / km)">
+      <input id="convDist" type="number" placeholder="Distance (m)" value="200" min="10" step="10">
+    </div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px;">
+      <button type="button" class="distbtn" data-d="100">100 m</button>
+      <button type="button" class="distbtn active" data-d="200">200 m</button>
+      <button type="button" class="distbtn" data-d="300">300 m</button>
+      <button type="button" class="distbtn" data-d="400">400 m</button>
+      <button type="button" class="distbtn" data-d="600">600 m</button>
+      <button type="button" class="distbtn" data-d="800">800 m</button>
+      <button type="button" class="distbtn" data-d="1000">1000 m</button>
+    </div>
+    <div id="convResult" style="margin-top:14px;font-size:26px;font-weight:800;color:var(--accent2);font-variant-numeric:tabular-nums;">--:--</div>
+    <p class="hint collapsible">Renseigne une allure et une distance pour obtenir le temps cible. Toujours disponible, même sans
+      données encodées (utile en coaching). Si tu as calculé tes zones, le menu ci-dessus te laisse choisir une
+      allure calculée directement (ex. 200 m à ton allure hard).</p>
+  </div>
+
+  <h2 id="convKmhSection">Convertisseur allure &harr; km/h</h2>
+  <div class="card">
+    <div class="hyrox">
+      <input id="convPaceKmh" inputmode="text" placeholder="Allure (mm:ss / km)">
+      <input id="convKmh" type="number" inputmode="decimal" placeholder="Vitesse (km/h)" min="1" step="0.1">
+    </div>
+    <p class="hint collapsible">Renseigne l'un ou l'autre, l'autre se calcule automatiquement - pratique pour regler un tapis a n'importe quelle allure, meme en dehors des zones ci-dessus.</p>
+  </div>
+
+  <div style="text-align:center;margin:28px 0 8px;">
+    <button type="button" class="allures-toggle" id="methodoToggle" style="margin-bottom:0;">Comprendre la méthodologie et les limites de l'outil (bonus)</button>
+  </div>
+
+  <div class="tab-panel methodo" id="tab-methodo">
+    <p style="color:var(--muted);font-size:13px;margin:16px 0 4px;">Cet outil repose sur des équations physiologiques publiées, croisées avec l'expérience terrain d'un coach. Chaque chiffre a ses limites : cette page les explique honnêtement - pour t'en servir intelligemment, pas à l'aveugle.</p>
+
+    <h3>D'où viennent les allures ?</h3>
+    <p>Les zones d'entraînement (easy, tempo, seuil, very hard, fast) sont calculées avec les équations de Daniels &amp; Gilbert (1979), une référence publiée en sciences de l'exercice. À partir d'une performance récente, l'outil déduit un "score de forme" (équivalent VDOT) puis les allures de chaque zone.</p>
+    <p class="src">Validé contre une référence externe : un 5 km en 17:02.5 doit donner un score de 60,0 - le calcul sort 60,02.</p>
+
+    <h3>Pourquoi les % de fréquence cardiaque sont à prendre avec des pincettes</h3>
+    <div class="warn-box">La FC varie énormément d'une personne à l'autre, à effort identique. Les %FCmax affichés viennent des zones de Daniels (un repère de population), pas de ta physiologie précise. Ta vraie zone 2 peut être plus basse ou plus haute que ce qui est prédit.</div>
+    <p>Concrètement : ne cours pas "en zone 2" juste parce que ta montre affiche le bon %. Recoupe toujours avec ton RPE (ressenti d'effort) et ta capacité à parler. Si tu tiens une conversation complète, tu es en easy, peu importe ce que dit le cardio.</p>
+    <p>La référence la plus fiable reste ta <b>FC seuil réelle</b>, mesurée sur le terrain - pas un %FCmax théorique, et surtout pas une FC max estimée par une formule d'âge (voir plus bas).</p>
+
+    <h3>Ne JAMAIS utiliser "220 - âge"</h3>
+    <div class="warn-box">Les formules d'estimation de FC max par l'âge (220 - âge et variantes) sont notoirement imprécises : l'écart réel atteint couramment ±10 à 12 battements. Utilisée pour caler tes zones, une FC max fausse rend toutes tes zones fausses.</div>
+    <p>Si tu ne connais pas ta vraie FC max mesurée, laisse le champ vide dans l'outil : les % de zone restent affichés et suffisent comme repère.</p>
+
+    <h3>Sur very hard et fast : pilote au chrono, pas au cardio</h3>
+    <p>Sur les efforts courts et intenses, la fréquence cardiaque réagit avec retard : elle continue de monter alors que l'effort est déjà fini. S'y fier te ferait courir trop vite. Sur ces zones, le chrono (ton allure cible) est le seul repère fiable - c'est pour ça que l'outil n'affiche pas de FC sur "fast".</p>
+
+    <h3>Le profil (coureur / hybride / force) : ce qu'il change vraiment</h3>
+    <p>Un athlète orienté force a typiquement une économie de course moins développée qu'un coureur pur. À score de forme égal, il doit courir ses allures faciles un peu plus lentement pour rester dans la bonne zone. L'outil ajuste l'allure easy selon le profil (la zone où l'écart entre profils est le plus clair physiologiquement). Les autres zones restent identiques : ajuster à moitié créerait des incohérences entre zones, on préfère ne pas ajuster que mal ajuster.</p>
+    <p class="src">Ces ajustements s'appuient sur les fourchettes %VO2max distinctes par profil (Endurant vs Powerful) documentées par Upside Strength. Le profil "hybride" est une interpolation entre les deux - un repère raisonnable, pas une catégorie mesurée.</p>
+
+    <h3>Le "race pace Hyrox" n'est pas ton allure de course classique</h3>
+    <p>C'est ton allure de course <b>pendant</b> un Hyrox, ralentie par la fatigue des stations - pas ton allure sur route ou piste. Un coureur pur qui découvre le Hyrox courra plus lentement en course qu'à froid, c'est normal.</p>
+    <div class="warn-box">L'outil n'invente pas de conversion entre solo et doubles pour la course. Les données fiables (Repz, roxzone) sont claires : sur la course spécifiquement, l'avantage du doubles est faible à nul (vous courez chaque km ensemble, à l'allure du plus lent). Le gros gain du doubles vient des stations, que cet outil ne calcule pas. La seule donnée juste, c'est ton vrai chrono du format que tu cours.</div>
+
+    <h3>Les limites de fiabilité du modèle</h3>
+    <p>Le calcul est le plus fiable pour des efforts d'environ 3 min à 1h30. En dessous (sprints) ou au-dessus (marathon, ultra), la précision baisse et l'outil t'avertit. Le score sur une distance ne garantit pas le chrono sur une autre distance non entraînée spécifiquement : le marathon dépend aussi de l'endurance longue, du ravitaillement et du mental, pas seulement du moteur aérobie.</p>
+
+    <h3>Science publiée + jugement de coaching</h3>
+    <p>Cet outil ne se contente pas d'appliquer des formules à l'aveugle. Là où la littérature scientifique est solide (les allures de Daniels, les zones FC), l'outil s'y tient fidèlement. Mais plusieurs choix relèvent du jugement d'un coach expérimenté, et c'est assumé : l'ampleur des ajustements par profil, la largeur des fourchettes, ou encore le refus délibéré d'inventer une conversion solo/doubles là où aucune donnée fiable n'existe.</p>
+    <p>Ce dernier point est important : face à un outil, la tentation est de tout chiffrer pour paraître précis. Le vrai savoir-faire, c'est de savoir <b>quand ne pas donner un chiffre</b> - quand une estimation inventée serait plus trompeuse qu'utile. Chaque fois qu'une valeur relève de l'expérience plutôt que d'une étude, l'outil le signale explicitement au lieu de le maquiller en donnée scientifique.</p>
+
+    <h3>La règle d'or</h3>
+    <p>Cet outil est un point de départ, pas une vérité absolue. En cas de divergence entre le calcul et ton ressenti terrain, <b>le ressenti et l'observation priment</b>. Recalibre après chaque nouvelle performance, ou toutes les 6 à 8 semaines.</p>
+
+    <p class="src" style="margin-top:24px;padding-top:14px;border-top:1px solid var(--line);">Sources principales : Daniels &amp; Gilbert (1979), Jack Daniels' Running Formula (zones VDOT), Upside Strength (profils Endurant/Powerful), Repz &amp; roxzone (dynamique Hyrox solo/doubles). Ajustements et arbitrages : jugement de coaching, signalés comme tels dans l'outil.</p>
+  </div><!-- /tab-methodo -->
+
+  <div class="foot">BeGlorious - estimation à titre indicatif, modèle vitesse-VO2 (Daniels-Gilbert).
+    À affiner au RPE et au ressenti terrain. Recalibre après une nouvelle perf ou tous les 6-8 semaines.</div>
+
+</div>
+
+<script>
+// ============ Estimation sans données (hiérarchie Daniels) ============
+document.getElementById("estimToggle").addEventListener("click", function(){
+  var blk=document.getElementById("estimBlock");
+  var open=blk.style.display==="none";
+  blk.style.display=open?"block":"none";
+  this.textContent=open?"Masquer l'estimation":"Je n'ai pas de perf récente ?";
+});
+function applyEstimation(distM, timeSec, label){
+  // Injecte l'estimation comme performance de reference dans la 1re ligne, marquee "estimee".
+  var first=perfsEl.querySelector(".perf");
+  if(!first) return;
+  first.querySelector(".dist").value=distM;
+  first.querySelector(".time").value=fmtTime(timeSec);
+  var di=first.querySelector(".date-input");
+  if(di){ di.value=todayFR(); di.dispatchEvent(new Event("input")); }
+  estimActive=true;
+  if(typeof saveState==="function") saveState();
+  var res=document.getElementById("estimResult");
+  res.style.display="block";
+  res.innerHTML="Estimation appliquée ("+label+"). Tes allures sont marquées <b>estimées</b> - clique sur "+
+    "\"Calculer mes allures\". Remplace par une vraie perf dès que possible.";
+}
+var estimActive=false;
+// Chrono estime sur 5 km (methode preferee Daniels)
+[].slice.call(document.querySelectorAll('.quiz-q[data-eq="chrono"] .quiz-opt')).forEach(function(opt){
+  opt.addEventListener("click", function(){
+    [].slice.call(document.querySelectorAll('.quiz-q[data-eq="chrono"] .quiz-opt')).forEach(function(o){o.classList.remove("selected");});
+    opt.classList.add("selected");
+    document.getElementById("estimFooting").style.display="none";
+    document.getElementById("estimBegin").style.display="none";
+    if(opt.dataset.eqNokm){
+      // Ne court pas 5km : proposer le footing, ou le message debutant
+      document.getElementById("estimFooting").style.display="block";
+      document.getElementById("estimResult").style.display="none";
+      estimActive=false;
+      return;
+    }
+    var sec=parseInt(opt.dataset.sec,10);
+    applyEstimation(5000, sec, "5 km estimé en "+fmtTime(sec));
+  });
+});
+// Repli : allure footing connue
+document.getElementById("estimFootPace").addEventListener("input", function(){
+  var footSec=parseTime(this.value);
+  if(!footSec){ document.getElementById("estimBegin").style.display="none"; return; }
+  // footing = ~0.65 du VDOT. On derive le VDOT puis un temps 5km equivalent pour l'injecter.
+  var lo=25, hi=85;
+  for(var i=0;i<50;i++){ var mid=(lo+hi)/2; if(paceFromVdot(mid,0.65) > footSec) lo=mid; else hi=mid; }
+  var vdot=(lo+hi)/2;
+  // temps 5km equivalent a ce vdot (pour injecter comme perf standard)
+  var t5=timeForDist(vdot, 5000);
+  applyEstimation(5000, t5, "d'après ton footing à "+this.value+"/km");
+});
+
+// ============ Questionnaire de profil ============
+document.getElementById("quizToggle").addEventListener("click", function(){
+  var quiz=document.getElementById("profileQuiz");
+  var open=quiz.style.display==="none";
+  quiz.style.display=open?"block":"none";
+  this.textContent=open?"Masquer le questionnaire":"Je ne sais pas quel profil choisir";
+});
+var quizAnswers={runvol:null, strengthvol:null, longrun:null};
+var PROFILE_LABEL={force:"Plutôt orienté force", hybrid:"Hybride équilibré", runner:"Plutôt coureur pur"};
+[].slice.call(document.querySelectorAll(".quiz-q")).forEach(function(q){
+  var key=q.dataset.q;
+  [].slice.call(q.querySelectorAll(".quiz-opt")).forEach(function(opt){
+    opt.addEventListener("click", function(){
+      [].slice.call(q.querySelectorAll(".quiz-opt")).forEach(function(o){ o.classList.remove("selected"); });
+      opt.classList.add("selected");
+      quizAnswers[key]=parseInt(opt.dataset.v,10);
+      maybeComputeProfile();
+    });
+  });
+});
+function maybeComputeProfile(){
+  if(quizAnswers.runvol===null || quizAnswers.strengthvol===null || quizAnswers.longrun===null) return;
+  // 3 questions factuelles (comportement, pas ressenti), orientees 0=force / 2=endurance.
+  // Le volume force est encode inverse dans le HTML (bcp de force -> 0). Poids egal. Score 0-6.
+  var score=quizAnswers.runvol + quizAnswers.strengthvol + quizAnswers.longrun;
+  var profile = score<=1 ? "force" : (score<=4 ? "hybrid" : "runner");
+  document.getElementById("hybridProfile").value=profile;
+  if(typeof saveState==="function") saveState();
+  var res=document.getElementById("quizResult");
+  res.style.display="block";
+  res.innerHTML="Profil déduit du questionnaire : <b style=\"color:var(--accent2)\">"+PROFILE_LABEL[profile]+"</b>. "+
+    "Si tu ajoutes une 2e course de distance différente, la déduction par tes chiffres prendra le relais (plus fiable).";
+}
+
+// Chaque .hint.collapsible est masquée par défaut et précédée d'un petit "?" qui la déplie.
+[].slice.call(document.querySelectorAll(".hint.collapsible")).forEach(function(hint){
+  var btn=document.createElement("button");
+  btn.type="button"; btn.className="help-btn"; btn.textContent="?";
+  btn.setAttribute("aria-label","Afficher l'aide");
+  hint.parentNode.insertBefore(btn, hint);
+  btn.addEventListener("click", function(){
+    var open=hint.classList.toggle("open");
+    btn.classList.toggle("open", open);
+  });
+});
+
+document.getElementById("methodoToggle").addEventListener("click", function(){
+  var panel=document.getElementById("tab-methodo");
+  var open=panel.classList.toggle("active");
+  this.textContent = open ? "Masquer la méthodologie" : "Comprendre la méthodologie et les limites de l'outil (bonus)";
+  if(open) panel.scrollIntoView({behavior:"smooth", block:"start"});
+});
+
+// ============ Modèle vitesse-VO2 (Daniels-Gilbert) ============
+var FRAC = {easyFast:0.72, easySlow:0.63, hard:0.88, fast:1.08};
+// Le modele vitesse-VO2 est calibre sur des coureurs entraines (economie de course standard).
+// Un profil oriente force a typiquement une economie de course moins developpee et une dominante
+// fibres rapides moins efficace en endurance aerobie pure : sur un effort dur il peut compenser
+// par de la puissance/anaerobie, mais pas sur un effort facile/recup, ou tout doit venir de
+// l'aerobie. A score de forme egal, il doit donc viser une allure facile/recup plus lente qu'un
+// coureur pur. Magnitude choisie par jugement de coaching (pas une donnee publiee specifique),
+// runner = calibrage du modele d'origine (aucun ajustement).
+var PROFILE_ADJUST = {
+  runner: 0,
+  hybrid: 0.02,
+  force:  0.05
+};
+// NOTE sur les ajustements par profil : seul easy/recup est ajuste (via PROFILE_ADJUST ci-dessus),
+// car c'est la seule zone ou l'ecart entre profils est physiologiquement clair (economie de course,
+// dominante fibres) ET ou l'effet ne cree pas d'incoherence. On avait tente d'ajuster aussi tempo
+// et seuil (d'apres Upside Strength), mais : (1) la fourchette Powerful du seuil etait illisible dans
+// la source, (2) ajuster tempo sans ajuster seuil creait un trou de plusieurs dizaines de sec/km
+// entre les deux zones pour un profil force. Par coherence et fiabilite, tempo et seuil restent donc
+// fixes pour tous les profils. Mieux vaut ne pas ajuster que d'ajuster a moitie et creer une faille.
+function hardAdjust(){ return 0; }
+function currentProfile(){
+  var el = document.getElementById("hybridProfile");
+  return el ? el.value : "force";
+}
+function profileAdjust(){
+  return PROFILE_ADJUST[currentProfile()] || 0;
+}
+// Detecte le profil a partir de 2+ performances a distances eloignees (rapport >=2x).
+// Prend la perf la plus courte et la plus longue, compare leurs scores VDOT. Ecart positif
+// (court meilleur que long) = profil force ; ecart nul/negatif = coureur. Met a jour le
+// selecteur et affiche un message. Retourne true si une detection a eu lieu.
+// Decide si le race pace Hyrox doit etre re-estime (Hyrox vieux + forme ayant progresse).
+// Retourne {reestimate:bool, reliable:bool, pace:s/km, monthsOld:int}.
+// - reestimate=false : Hyrox recent ou forme stable -> on garde le mesure tel quel.
+// - reestimate=true, reliable=true (CAS A) : une course de la meme periode que le Hyrox existe,
+//   on isole la vraie taxe de fatigue et on l'applique au seuil actuel.
+// - reestimate=true, reliable=false (CAS B) : pas de course a l'epoque du Hyrox, on suppose une
+//   taxe selon le profil (approximatif).
+function reestimateHyrox(hxPace, hxDate, perfs, pHardActuel, refPerf){
+  var res={reestimate:false, reliable:false, pace:hxPace, monthsOld:null};
+  if(!hxDate) return res; // sans date de Hyrox, on ne peut rien dater -> comportement normal
+  var now=new Date();
+  var monthsOld=Math.round((now-hxDate)/(30.4*864e5));
+  res.monthsOld=monthsOld;
+  if(monthsOld < 4) return res; // Hyrox recent -> mesure fiable, pas de re-estimation
+
+  // Chercher une course de course pure datant de la periode du Hyrox (ecart < 4 mois).
+  var coursePerfs=(perfs||[]).filter(function(p){ return p.date && p.d!==8000; });
+  var nearHyrox=null, bestGap=Infinity;
+  coursePerfs.forEach(function(p){
+    var gapDays=Math.abs((p.date-hxDate)/864e5);
+    if(gapDays < 122 && gapDays < bestGap){ bestGap=gapDays; nearHyrox=p; }
+  });
+
+  // Le seuil actuel vient de refPerf (perf de reference recente). Verifier que la forme a bouge.
+  if(nearHyrox){
+    // CAS A : on peut isoler la taxe reelle.
+    var seuilEpoque=paceFromVdot(vdotFromPerf(nearHyrox.d, nearHyrox.t), FRAC.hard);
+    var taxe=hxPace - seuilEpoque;
+    // Forme bougé de facon notable ? (seuil actuel vs seuil epoque > 8 s/km)
+    if(Math.abs(pHardActuel - seuilEpoque) < 8) return res; // forme stable -> mesure reste valable
+    res.reestimate=true; res.reliable=true;
+    res.pace=pHardActuel + taxe;
+    return res;
+  } else {
+    // CAS B : pas de course a l'epoque, on ne peut pas isoler la taxe.
+    // On re-estime avec une taxe supposee selon le profil (approximatif), seulement si on a
+    // une perf de course recente qui prouve une forme actuelle (sinon rien a comparer).
+    if(!refPerf) return res;
+    var profile=currentProfile();
+    var tax=TAX_BY_PROFILE[profile]||TAX_BY_PROFILE.force;
+    var taxeMoy=(tax.low+tax.high)/2;
+    res.reestimate=true; res.reliable=false;
+    res.pace=pHardActuel + taxeMoy;
+    return res;
+  }
+}
+function autoDetectProfileFromPerfs(perfs){
+  var msg=document.getElementById("profileAutoMsg");
+  if(!perfs || perfs.length<2){ if(msg) msg.style.display="none"; return false; }
+  var sorted=perfs.slice().sort(function(a,b){ return a.d-b.d; });
+  var shortest=sorted[0], longest=sorted[sorted.length-1];
+  // Seuil abaisse a 1.6x : un 3km vs 5km (1.67x) est deja informatif, inutile d'exiger 2x.
+  if(longest.d / shortest.d < 1.6){ if(msg) msg.style.display="none"; return false; }
+  var vShort=vdotFromPerf(shortest.d, shortest.t);
+  var vLong=vdotFromPerf(longest.d, longest.t);
+  var gap=vShort-vLong;
+  // Garde-fou : un ecart hors [-6, +12] n'est pas plausible pour un vrai profil. C'est le signe
+  // qu'une des deux perfs n'a pas ete donnee a fond (ex. 1km couru en footing -> ecart tres negatif,
+  // ou sprint pur incomparable -> ecart tres positif). Dans ce cas on ne deduit PAS le profil, on
+  // previent plutot que de sortir un diagnostic faux.
+  if(gap < -6 || gap > 12){
+    if(msg){
+      msg.style.display="block";
+      msg.innerHTML="Tes deux performances donnent un écart incohérent pour déduire un profil - "+
+        "l'une des deux n'a probablement pas été courue à fond. Vérifie tes temps, ou choisis ton profil manuellement.";
+    }
+    return false;
+  }
+  var profile = gap>=4 ? "force" : (gap<=0 ? "runner" : "hybrid");
+  document.getElementById("hybridProfile").value=profile;
+  if(typeof saveState==="function") saveState();
+  if(msg){
+    var lbl={force:"Plutôt orienté force", hybrid:"Hybride équilibré", runner:"Plutôt coureur pur"}[profile];
+    msg.style.display="block";
+    msg.innerHTML="Profil déduit de tes performances (écart court/long) : <b style=\"color:var(--accent2)\">"+lbl+
+      "</b>. C'est la méthode la plus fiable - elle prime sur le questionnaire.";
+  }
+  return true;
+}
+// Taxe de fatigue estimee (s/km au-dessus de l'allure seuil S2), utilisee seulement si aucun Hyrox
+// n'est mesure. Bornes par profil auto-declare : un hybride bien entraine encaisse mieux la fatigue
+// des stations qu'un profil polarise (donnees Hyrox reelles : la derive de course varie du simple
+// au double+ selon le niveau de conditionnement hybride, pas seulement selon la vitesse de course).
+// Ce n'est pas une conversion scientifique exacte : encoder un vrai temps Hyrox reste le seul moyen
+// d'avoir TA valeur reelle.
+// Fourchettes de taxe de fatigue par profil auto-declare, utilisees uniquement si aucun Hyrox
+// n'est mesure. Deux sources externes distinctes appuient ces bornes (aucune des deux ne mesure
+// exactement "allure moyenne vs allure seuil individuelle" - c'est toujours une adaptation, pas
+// une conversion scientifique directe) :
+// - Roxmetric (roxmetric.com/tools/race-predictor, 80840 resultats, 1980 paires route/Hyrox) :
+//   l'allure Hyrox reelle devie de -65 a +41 sec/km par rapport a l'allure predite depuis l'allure
+//   route, 80% du temps. C'est une mesure de variance globale (population), plus large que la
+//   variance residuelle attendue ici puisque l'allure seuil individuelle absorbe deja une partie
+//   de la variabilite que Roxmetric doit capturer via l'allure route seule.
+// - Rox-Coach (rox-coach.com/pace-calculator) confirme independamment le decoupage en 3 profils
+//   (Hybrid / Runner / CrossFitter), la meme logique que hybrid/runner/force ci-dessous.
+var TAX_BY_PROFILE = {
+  hybrid: {low:5,  high:30},
+  runner: {low:15, high:45},
+  force:  {low:20, high:55}
+};
+// Note : pas de conversion automatique solo <-> doubles. Les sources fiables (Repz, roxzone) sont
+// claires : sur la COURSE specifiquement, l'avantage du doubles est faible a nul (les deux
+// partenaires courent chaque km ensemble, allure bornee par le plus lent). Le gain du doubles vient
+// des stations, que cet outil ne calcule pas. Extrapoler une allure de course d'un format a l'autre
+// reviendrait a inventer un chiffre : on affiche donc uniquement le format reellement couru.
+var DISTS = [
+  {m:1000,label:"1 km"},{m:1500,label:"1,5 km"},{m:3000,label:"3 km"},
+  {m:5000,label:"5 km"},{m:10000,label:"10 km"},{m:15000,label:"15 km"},{m:21097,label:"Semi (21,1 km)"}
+];
+function vo2FromV(v){ return -4.60 + 0.182258*v + 0.000104*v*v; }
+function vFromVo2(vo2){ var a=0.000104,b=0.182258,c=-(4.60+vo2); return (-b+Math.sqrt(b*b-4*a*c))/(2*a); }
+function pctMax(t){ return 0.8 + 0.1894393*Math.exp(-0.012778*t) + 0.2989558*Math.exp(-0.1932605*t); }
+function vdotFromPerf(d,ts){ var tm=ts/60, v=d/tm; return vo2FromV(v)/pctMax(tm); }
+function predictedDurationMin(vd, dist){
+  var lo=1, hi=400;
+  for(var i=0;i<60;i++){ var mid=(lo+hi)/2; if(vdotFromPerf(dist,mid*60)>vd) lo=mid; else hi=mid; }
+  return (lo+hi)/2;
+}
+// Le pourcentage d'effort soutenable sur marathon depend de la duree reelle de l'effort (plus c'est
+// long, plus le pourcentage soutenable baisse). Un debutant met beaucoup plus longtemps a boucler un
+// marathon qu'un coureur rapide : utiliser 0.82 fixe pour tout le monde sous-estime cet effet pour les
+// profils lents. Calcule le pourcentage reel a partir de la duree marathon predite pour cette personne.
+function mPct(vd){ return pctMax(predictedDurationMin(vd, 42195)); }
+
+// Reperes RPE et FC par allure. RPE : calcule depuis le %VO2max (echelle d'effort).
+// FC : bornes %FCmax directement issues des zones publiees par Daniels (VDOT), attachees a chaque
+// allure via hrZone. On a abandonne la formule de Swain continue (%FCmax = 0.64 x %VO2max + 37) :
+// regression de population qui surestimait la FC en zone easy pour les profils entraines (elle
+// sortait ~77-83% FCmax pour easy la ou Daniels situe la zone a 65-79%).
+function vo2PctFromPace(paceSec, vd){ var v=60000/paceSec; return vo2FromV(v)/vd; }
+function rpeFromVo2Pct(pct){
+  if(pct<0.60) return "2-3";
+  if(pct<0.75) return "3-4";
+  if(pct<0.86) return "5-6";
+  if(pct<0.95) return "7";
+  if(pct<1.05) return "8-9";
+  return "9-10";
+}
+
+function repereStr(a, vd){
+  // RPE : toujours calcule depuis le %VO2max de l'allure (echelle d'effort, robuste).
+  var pctHigh = vo2PctFromPace(a.lo, vd), pctLow = vo2PctFromPace(a.hi, vd);
+  var rpe = rpeFromVo2Pct((pctLow+pctHigh)/2);
+  if(a.hrNotRel || !a.hrZone) return "RPE "+rpe+" &middot; chrono uniquement (FC non pertinente, trop court)";
+  // FC : bornes %FCmax directement issues des zones de Daniels (VDOT), pas de la formule de Swain
+  // continue - cette derniere surestimait la FC en zone easy pour les profils entraines.
+  var hrLow = a.hrZone.lo, hrHigh = a.hrZone.hi;
+  var hrStr = hrLow+"-"+hrHigh+"% FCmax";
+  // Si l'utilisateur a renseigne sa vraie FC max, on ajoute les BPM cibles a cote du %.
+  var hrMaxEl=document.getElementById("hrMax");
+  var hrMax = hrMaxEl ? parseInt(hrMaxEl.value,10) : NaN;
+  if(hrMax && hrMax>=120 && hrMax<=230){
+    var bpmLow=Math.round(hrLow/100*hrMax), bpmHigh=Math.round(hrHigh/100*hrMax);
+    hrStr += " (" + bpmLow+"-"+bpmHigh+" bpm)";
+  }
+  return "RPE "+rpe+" &middot; "+hrStr;
+}
+function paceFromVdot(vd,f){ return 60000/vFromVo2(f*vd); }
+
+function timeForDist(vd,d){
+  var km=d/1000, lo=km*120, hi=km*900;
+  for(var i=0;i<70;i++){ var m=(lo+hi)/2; if(vdotFromPerf(d,m)>vd) lo=m; else hi=m; }
+  return (lo+hi)/2;
+}
+
+// ============ Utilitaires ============
+function parseTime(s){
+  if(!s) return null; s=s.trim();
+  var p=s.split(":").map(function(x){return x.trim();});
+  if(p.some(function(x){return x==="" || isNaN(x);})) return null;
+  var sec;
+  if(p.length===2) sec=(+p[0])*60+(+p[1]);
+  else if(p.length===3) sec=(+p[0])*3600+(+p[1])*60+(+p[2]);
+  else return null;
+  return sec>0?sec:null;
+}
+function fmtTime(sec){
+  sec=Math.round(sec);
+  var h=Math.floor(sec/3600), m=Math.floor((sec%3600)/60), s=sec%60;
+  var mm=(m<10&&h>0?"0":"")+m, ss=(s<10?"0":"")+s;
+  return h>0? h+":"+mm+":"+ss : m+":"+ss;
+}
+function fmtPace(sp){ var m=Math.floor(sp/60), s=Math.round(sp%60); if(s===60){m++;s=0;} return m+":"+(s<10?"0":"")+s; }
+function fmtKmh(paceSec){ return (3600/paceSec).toFixed(1)+" km/h"; }
+function zoneClass(name){
+  if(name.indexOf("race pace")===0) return "zone-race";
+  if(name==="easy") return "zone-easy";
+  if(name==="tempo") return "zone-tempo";
+  if(name==="hard") return "zone-hard";
+  if(name==="very hard") return "zone-veryhard";
+  if(name==="fast") return "zone-fast";
+  return "";
+}
+function zoneColorHex(name){
+  if(name.indexOf("race pace")===0) return "#B98CE0";
+  if(name==="easy") return "#6FA8DC";
+  if(name==="tempo") return "#5BC2A0";
+  if(name==="hard") return "#E8923E";
+  if(name==="very hard") return "#E0483F";
+  if(name==="fast") return "#E93D82";
+  return "#E15241";
+}
+var lastAllures=null, lastVdot=null, currentUnit="pace", lastRefInfo=null;
+function renderAllureCards(unit){
+  if(!lastAllures) return;
+  document.getElementById("allures").innerHTML=lastAllures.map(function(a){
+    // En min/km : rapide (petit temps) affiche en premier. En km/h, la vitesse la plus basse (allure la
+    // plus lente = a.hi) doit venir en premier pour une lecture croissante, naturelle sur un tapis.
+    var paceStr = unit==="kmh"
+      ? fmtKmh(a.hi)+" - "+fmtKmh(a.lo)
+      : fmtPace(a.lo)+" - "+fmtPace(a.hi)+" /km";
+    var repere = repereStr(a, lastVdot) + (a.rpeSuffix || "");
+    return '<div class="pace-card">'+
+      '<div class="pace-card-head">'+
+        '<span class="pace-name"><span class="pace-chevron">&#9656;</span><span class="zone-badge '+zoneClass(a.n)+'">'+a.n+'</span><span class="'+a.cls+'">'+a.tag+'</span></span>'+
+        '<span class="pace-range">'+paceStr+'</span>'+
+      '</div>'+
+      '<div class="pace-sub"><b>'+repere+'</b> &mdash; '+a.use+'</div>'+
+    '</div>';
+  }).join("");
+  [].slice.call(document.querySelectorAll(".pace-card")).forEach(function(card){
+    card.addEventListener("click", function(){ card.classList.toggle("open"); });
+  });
+  if(typeof populateConvZone==="function") populateConvZone();
+}
+document.getElementById("unitPace").addEventListener("click", function(){
+  currentUnit="pace";
+  document.getElementById("unitPace").classList.add("active");
+  document.getElementById("unitKmh").classList.remove("active");
+  renderAllureCards(currentUnit);
+});
+document.getElementById("unitKmh").addEventListener("click", function(){
+  currentUnit="kmh";
+  document.getElementById("unitKmh").classList.add("active");
+  document.getElementById("unitPace").classList.remove("active");
+  renderAllureCards(currentUnit);
+});
+// Marge volontaire autour de l'allure calculee : le modele donne un centre, pas une precision
+// a la seconde pres. Largeur choisie par jugement coaching (pas une valeur issue de la litterature),
+// a ajuster si besoin.
+function fmtSec(x){ x=Math.round(x); return (x>=0?"+":"-")+Math.abs(x)+" s/km"; }
+
+// ============ Formulaire ============
+var perfsEl=document.getElementById("perfs");
+// Raccourcis de distances courantes : remplissent le champ distance de la derniere ligne perf.
+var DIST_CHIPS = [
+  {m:1500,label:"1500 m"},{m:3000,label:"3 km"},{m:5000,label:"5 km"},
+  {m:8000,label:"8 km"},{m:10000,label:"10 km"},{m:15000,label:"15 km"},{m:21097,label:"Semi"}
+];
+function renderDistChips(){
+  document.getElementById("distChips").innerHTML = DIST_CHIPS.map(function(c){
+    return '<button type="button" class="dist-chip" data-m="'+c.m+'">'+c.label+'</button>';
+  }).join("");
+  [].slice.call(document.querySelectorAll(".dist-chip")).forEach(function(btn){
+    btn.addEventListener("click", function(){
+      var rows=[].slice.call(perfsEl.children);
+      if(!rows.length) return;
+      var lastDist=rows[rows.length-1].querySelector(".dist");
+      lastDist.value=btn.dataset.m;
+      saveState();
+    });
+  });
+}
+// Masque de saisie : l'utilisateur ne tape que des chiffres, les "/" s'inserent seuls.
+// Fonctionne de facon identique sur tous les appareils/navigateurs (contrairement a
+// input type="date", dont le rendu et le comportement varient trop selon la plateforme).
+function wireDateMask(input){
+  input.addEventListener("input", function(){
+    var digits=input.value.replace(/\D/g,"").slice(0,8);
+    var out=digits;
+    if(digits.length>4) out=digits.slice(0,2)+"/"+digits.slice(2,4)+"/"+digits.slice(4);
+    else if(digits.length>2) out=digits.slice(0,2)+"/"+digits.slice(2);
+    input.value=out;
+  });
+}
+// Accepte jj/mm/aaaa (format courant) et yyyy-mm-dd (ancien format, pour ne pas perdre les
+// dates deja sauvegardees par des utilisateurs avant ce changement).
+function parseDateFR(str){
+  if(!str) return null;
+  var m=str.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  if(m){
+    var day=+m[1], month=+m[2], year=+m[3];
+    if(month<1||month>12||day<1||day>31) return null;
+    return new Date(year, month-1, day);
+  }
+  var m2=str.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if(m2) return new Date(+m2[1], +m2[2]-1, +m2[3]);
+  return null;
+}
+function toFRDisplay(str){
+  var m=str && str.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  return m ? (m[3]+"/"+m[2]+"/"+m[1]) : (str||"");
+}
+
+// ============ Persistance (localStorage) ============
+// Objectif : ne jamais avoir a resaisir ses chronos a chaque visite.
+var STORE_KEY="beglorious_course_calc";
+function collectState(){
+  return {
+    perfs:[].slice.call(perfsEl.children).map(function(row){
+      return { dist:row.querySelector(".dist").value, time:row.querySelector(".time").value, date:row.querySelector(".date-input").value };
+    }),
+    hxPace:document.getElementById("hxPace").value,
+    hxDate:document.getElementById("hxDate").value,
+    profile:document.getElementById("hybridProfile").value,
+    hrMax:document.getElementById("hrMax").value
+  };
+}
+function saveState(){ try{ localStorage.setItem(STORE_KEY, JSON.stringify(collectState())); }catch(e){} }
+function loadState(){ try{ var r=localStorage.getItem(STORE_KEY); return r?JSON.parse(r):null; }catch(e){ return null; } }
+
+function todayFR(){
+  var d=new Date();
+  return String(d.getDate()).padStart(2,"0")+"/"+String(d.getMonth()+1).padStart(2,"0")+"/"+d.getFullYear();
+}
+function addPerf(sel, time, date){
+  var row=document.createElement("div"); row.className="perf";
+  row.innerHTML='<div class="dist-field"><input class="dist" type="text" inputmode="numeric" placeholder="Distance" value="'+(sel?sel:"")+'"><span class="unit">m</span></div>'+
+    '<input class="time" placeholder="mm:ss" value="'+(time?String(time).replace(/"/g,""):"")+'">'+
+    '<input class="date date-input" type="text" inputmode="numeric" placeholder="jj/mm/aaaa" maxlength="10" value="'+toFRDisplay(date)+'">'+
+    '<button class="rm" title="Retirer">&times;</button>';
+  row.querySelector(".rm").onclick=function(){ if(perfsEl.children.length>1){ row.remove(); saveState(); } };
+  perfsEl.appendChild(row);
+  wireDateMask(row.querySelector(".date-input"));
+}
+document.getElementById("addBtn").onclick=function(){
+  // Nouvelle ligne : distance vide (l'utilisateur saisit librement), date du jour par defaut.
+  addPerf("", "", todayFR());
+  saveState();
+};
+
+renderDistChips();
+var savedState=loadState();
+if(savedState && savedState.perfs && savedState.perfs.length){
+  savedState.perfs.forEach(function(p){ addPerf(p.dist||"", p.time, p.date); });
+} else {
+  addPerf(5000);
+}
+wireDateMask(document.getElementById("hxDate"));
+if(savedState){
+  document.getElementById("hxPace").value=savedState.hxPace||"";
+  document.getElementById("hxDate").value=toFRDisplay(savedState.hxDate);
+  if(savedState.profile) document.getElementById("hybridProfile").value=savedState.profile;
+  if(savedState.hrMax) document.getElementById("hrMax").value=savedState.hrMax;
+}
+perfsEl.addEventListener("input", function(e){
+  // Si l'utilisateur edite manuellement une perf, ce n'est plus une estimation.
+  if(e.target && (e.target.classList.contains("time") || e.target.classList.contains("dist"))){
+    if(estimActive && !e.target.closest("#estimBlock")) estimActive=false;
+  }
+  saveState();
+});
+perfsEl.addEventListener("change", saveState);
+document.getElementById("hxPace").addEventListener("input", saveState);
+document.getElementById("hxDate").addEventListener("change", saveState);
+document.getElementById("hybridProfile").addEventListener("change", saveState);
+document.getElementById("hrMax").addEventListener("input", function(){ saveState(); if(lastAllures) renderAllureCards(currentUnit); });
+
+// ============ Calcul ============
+document.getElementById("calcBtn").onclick=function(){
+  var rows=[].slice.call(perfsEl.children), perfs=[];
+  rows.forEach(function(r){
+    var d=+r.querySelector(".dist").value, t=parseTime(r.querySelector(".time").value), dt=r.querySelector(".date-input").value;
+    if(d&&t) perfs.push({d:d,t:t,date:parseDateFR(dt)});
+  });
+
+  // Avertissement (non bloquant) : le modele physiologique est fiable pour des efforts d'environ
+  // 3 min a 1h30. En dehors, on previent sans empecher le calcul. C'est la DUREE de l'effort qui
+  // compte, pas la distance ronde ou non.
+  var durWarn=document.getElementById("durationWarn");
+  var tooShort=perfs.some(function(p){ return p.t < 180; });
+  var tooLong=perfs.some(function(p){ return p.t > 5400; });
+  if(tooShort || tooLong){
+    var msg="Attention : ";
+    if(tooShort && tooLong) msg+="certaines performances durent moins de 3 min ou plus de 1h30";
+    else if(tooShort) msg+="une performance dure moins de 3 min";
+    else msg+="une performance dure plus de 1h30";
+    msg+=" - hors de la plage ou le modele est le plus fiable. Le resultat reste affiche, mais traite-le avec prudence (un effort d'environ 3 min a 1h30 donne l'estimation la plus solide).";
+    durWarn.textContent=msg; durWarn.style.display="block";
+  } else {
+    durWarn.style.display="none";
+  }
+
+  var hxPace=parseTime(document.getElementById("hxPace").value); // s/km mesuré
+  var hxDate=document.getElementById("hxDate").value;
+
+  var out=document.getElementById("out"), no=document.getElementById("noData"), dateErr=document.getElementById("dateError");
+  var hyroxOnly=false;
+  if(perfs.length===0){
+    if(hxPace){
+      // Aucune perf de course pure : on derive une estimation degradee depuis le seul Hyrox
+      // (8 km a cette allure moyenne). Moins fiable, car cette allure inclut deja la fatigue
+      // des stations - la vraie allure de course a froid est probablement plus rapide que ça.
+      hyroxOnly=true;
+      perfs.push({d:8000, t:hxPace*8, date: parseDateFR(hxDate)});
+    } else {
+      out.classList.add("hidden"); no.classList.remove("hidden"); dateErr.style.display="none"; return;
+    }
+  }
+  no.classList.add("hidden");
+
+  // Si plusieurs performances sont en jeu, une date est indispensable pour chacune : sans ça,
+  // impossible de savoir laquelle est recente et laquelle est perimee, et une vieille perf sans
+  // date resterait comptee indefiniment (elle ne "vieillit" jamais).
+  if(perfs.length>1 && perfs.some(function(p){return !p.date;})){
+    out.classList.add("hidden");
+    dateErr.style.display="block";
+    return;
+  }
+  dateErr.style.display="none";
+
+  if(perfs.length>1){
+    var newest=perfs.reduce(function(a,b){return b.date>a.date?b:a;}).date;
+    var cutoff=new Date(newest.getTime()-365*864e5);
+    perfs=perfs.filter(function(p){return p.date>=cutoff;});
+  }
+
+  // ---- Choix de la performance de REFERENCE pour le score (zones) ----
+  // On ne moyenne PLUS les VDOT de distances differentes : moyenner un sprint (VDOT haut) et un
+  // effort long (VDOT bas) donnerait un score batard qui ne correspond a aucune realite, et
+  // surestimerait les allures d'endurance d'un profil force. A la place, on choisit UNE perf de
+  // reference reelle. Les zones easy/tempo/seuil sont des efforts d'ENDURANCE : la perf la plus
+  // longue les predit le mieux (moins polluee par la puissance anaerobie ou un depart pas a fond).
+  // Mais on croise avec la recence : une perf longue mais ancienne ne doit pas primer sur une
+  // perf recente. Regle : parmi les perfs recentes (< 4 mois de la plus recente), on prend la plus
+  // longue ; a defaut, la plus recente tout court.
+  var refPerf;
+  if(perfs.length===1){
+    refPerf=perfs[0];
+  } else {
+    var mostRecent=perfs.reduce(function(a,b){return b.date>a.date?b:a;});
+    var recentCutoff=new Date(mostRecent.date.getTime()-122*864e5); // ~4 mois
+    var recentPerfs=perfs.filter(function(p){return p.date>=recentCutoff;});
+    // parmi les perfs recentes, la plus longue (meilleure pour les zones d'endurance)
+    refPerf=recentPerfs.reduce(function(a,b){return b.d>a.d?b:a;});
+  }
+  var vdot=vdotFromPerf(refPerf.d, refPerf.t);
+
+  // Déduction automatique du profil si >=2 performances a distances eloignees (rapport >=2x).
+  // Le score VDOT sur distance courte vs longue revele le profil : un athlete force tient la vitesse
+  // sur court mais decroche sur long (ecart positif), un coureur reste coherent (ecart nul/negatif).
+  // Le modele est neutre (ecart 0 pour un athlete equilibre), donc l'ecart reflete le vrai profil.
+  autoDetectProfileFromPerfs(perfs);
+
+  var pHard=paceFromVdot(vdot,FRAC.hard-hardAdjust());
+  var vHard=vFromVo2((FRAC.hard-hardAdjust())*vdot); // vitesse au seuil, m/min
+  var distHard=(vHard*60)/1000; // distance parcourue en ~1h a cette allure, km
+  document.getElementById("ref5k").textContent=distHard.toFixed(1)+" km  ("+fmtPace(pHard)+"/km)"+(hyroxOnly?"  (estimation degradee)":"")+(estimActive?"  (allures ESTIMÉES - à confirmer)":"");
+
+  var adj = profileAdjust();
+  var pEasyF=paceFromVdot(vdot,FRAC.easyFast-adj);
+  var pEasyS=paceFromVdot(vdot,FRAC.easySlow-adj);
+
+  // race pace : fourchette bornée par la capacité fraîche et, si dispo, l'Hyrox mesuré
+  var raceRows;
+  var raceRpeNote = " (ressenti reel plus eleve qu'a froid : sortie de station, pas un effort isole)";
+  if(hyroxOnly){
+    raceRows=[{n:"race pace Hyrox", tag:"seule ref.", cls:"pill", lo:hxPace-5, hi:hxPace+5, rpeSuffix:raceRpeNote,
+      use:"Ton seul Hyrox connu, utilise comme base de tout le calcul. Pas de comparaison possible sans une performance de course independante."}];
+  } else if(hxPace){
+    var hxDateParsed=parseDateFR(hxDate);
+    var reest=reestimateHyrox(hxPace, hxDateParsed, perfs, pHard, refPerf);
+    if(reest.reestimate){
+      // Hyrox vieux + forme ayant progresse : on montre 2 lignes.
+      var moisTxt=reest.monthsOld!=null ? " (il y a ~"+reest.monthsOld+" mois)" : "";
+      raceRows=[
+        {n:"race pace Hyrox", tag:"mesuré"+moisTxt, cls:"pill meas", lo:hxPace-5, hi:hxPace+5, rpeSuffix:raceRpeNote,
+          use:"Ton Hyrox réellement mesuré"+moisTxt+". Tes performances de course récentes montrent que ta forme a progressé depuis : cette allure est probablement dépassée. Refais un Hyrox pour la caler sur du réel."},
+        (reest.reliable
+          ? {n:"race pace Hyrox", tag:"ré-estimé", cls:"pill", lo:reest.pace-5, hi:reest.pace+5, rpeSuffix:raceRpeNote,
+             use:"Ré-estimation sur ta forme ACTUELLE : on a isolé ta vraie taxe de fatigue Hyrox (grâce à une course de la même période que ton Hyrox), puis on l'a appliquée à ton seuil actuel. Fiable, car ta taxe de fatigue personnelle est mesurée, pas supposée."}
+          : {n:"race pace Hyrox", tag:"ré-estimé approx.", cls:"pill", lo:reest.pace-8, hi:reest.pace+8, rpeSuffix:raceRpeNote,
+             use:"Ré-estimation approximative sur ta forme actuelle. Sans course datant de la période de ton Hyrox, on ne peut pas isoler ta vraie taxe de fatigue : on suppose ici une taxe selon ton profil. À confirmer par un vrai Hyrox récent."})
+      ];
+    } else {
+      // Hyrox recent ou forme stable : comportement normal, une seule ligne mesuree.
+      raceRows=[{n:"race pace Hyrox", tag:"mesuré", cls:"pill meas", lo:hxPace-5, hi:hxPace+5, rpeSuffix:raceRpeNote,
+        use:"Ta vraie allure de course en Hyrox, mesurée (± marge jour de course), pour le format que tu as couru. C'est ta reference la plus fiable pour t'entrainer - le modele theorique 'a froid' est deja compare dans le diagnostic ci-dessous."}];
+    }
+  } else {
+    var profile=currentProfile();
+    var tax=TAX_BY_PROFILE[profile]||TAX_BY_PROFILE.force;
+    raceRows=[{n:"race pace Hyrox", tag:"estimé", cls:"pill", lo:pHard+tax.low, hi:pHard+tax.high, rpeSuffix:raceRpeNote,
+      use:"C'est ton allure de course PENDANT un Hyrox (pas ton allure de course a pied classique). Base sur ton allure seuil (S2) a froid + une taxe de fatigue estimee selon ton profil. Estimation de coaching/experience : encode un vrai Hyrox pour la caler sur du réel. Ton allure en course depend surtout de ta fraicheur a chaque segment (gestion des stations), pas d'une conversion universelle entre formats."}];
+  }
+
+  var allures=[
+    {n:"easy", tag:"base", cls:"pill", lo:pEasyF, hi:pEasyS, hrZone:{lo:65,hi:79}, use:"Course facile, conversationnelle. Base aérobie."},
+    {n:"tempo", tag:"Z3 / M", cls:"pill", lo:paceFromVdot(vdot,mPct(vdot))-5, hi:paceFromVdot(vdot,mPct(vdot))+5, hrZone:{lo:80,hi:90}, use:"Allure soutenue continue, a froid (hors contexte Hyrox). Blocs tempo 15-30 min, allure semi/marathon."},
+    {n:"hard", tag:"T / seuil", cls:"pill", lo:pHard-4, hi:pHard+4, hrZone:{lo:88,hi:92}, use:"Comfortably hard. Blocs longs (1600 m, 5000 m)."},
+    {n:"very hard", tag:"I / VO2max", cls:"pill", lo:paceFromVdot(vdot,1.00)-4, hi:paceFromVdot(vdot,1.00)+4, hrZone:{lo:95,hi:100}, use:"L'allure la plus dure. Fractions 3-5 min, ça pique. Récup active entre les fractions : au jog (rythme qui permet de récupérer sans marcher), jamais à l'arrêt complet."},
+    {n:"fast", tag:"R / reps", cls:"pill", lo:paceFromVdot(vdot,FRAC.fast)-4, hi:paceFromVdot(vdot,FRAC.fast)+4, hrNotRel:true, use:"Très rapide, foulées et sensations propres (200-400 m). Récup complète au jog entre les fractions, doit ressortir léger."}
+  ].concat(raceRows);
+  // Plus lent (haut) -> plus rapide (bas) : tri par allure moyenne de chaque fourchette, decroissant
+  // en secondes/km (un nombre de secondes/km plus grand = plus lent).
+  allures.sort(function(a,b){ return (b.lo+b.hi) - (a.lo+a.hi); });
+  lastAllures=allures; lastVdot=vdot;
+  // Memoriser la base de calcul pour le pense-bete (export image) : sur quoi ces allures reposent.
+  var fmtDist=function(m){ return m>=1000 ? (m/1000).toString().replace(/\.0$/,"")+" km" : m+" m"; };
+  var refParts=[];
+  if(hyroxOnly){
+    refParts.push("Hyrox seul : "+fmtPace(hxPace)+"/km (mode dégradé)");
+  } else if(refPerf){
+    refParts.push("Perf de référence : "+fmtDist(refPerf.d)+" en "+fmtTime(refPerf.t));
+    if(hxPace) refParts.push("Hyrox : "+fmtPace(hxPace)+"/km");
+  }
+  var profLabel={force:"orienté force", hybrid:"hybride", runner:"coureur"}[currentProfile()];
+  refParts.push("Profil : "+profLabel);
+  lastRefInfo=refParts;
+  renderAllureCards(currentUnit);
+  var toggleBtn=document.getElementById("toggleAllBtn");
+  var allOpen=false;
+  toggleBtn.onclick=function(){
+    allOpen=!allOpen;
+    [].slice.call(document.querySelectorAll(".pace-card")).forEach(function(card){
+      card.classList.toggle("open", allOpen);
+    });
+    toggleBtn.textContent = allOpen ? "Tout masquer" : "Tout afficher (RPE, FC, usage)";
+  };
+
+  var diag=document.getElementById("diag"), note=document.getElementById("raceNote");
+  if(hyroxOnly){
+    diag.classList.add("hidden");
+    note.classList.remove("hidden");
+    note.innerHTML="<b>Fiabilité réduite :</b> toutes ces allures sont estimées uniquement à partir de ton Hyrox, "+
+      "sans performance de course pure pour caler le calcul. Ton allure de course à froid est probablement un peu "+
+      "plus rapide que ce que ça donne, car l'allure Hyrox mesurée inclut déjà la fatigue des stations. "+
+      "Renseigne une performance de course (5 km, 10 km...) pour affiner.";
+  } else if(hxPace){
+    var tax=hxPace-pHard; // s/km au-dessus du seuil
+    var read;
+    if(hxPace<=pHard+8){
+      read="Tu tiens quasiment ton allure seuil sous fatigue. La course est un point fort - "+
+           "les gains viendront surtout des stations et de l'efficacité de transition.";
+    } else if(hxPace<=pEasyF){
+      read="Écart classique. Les stations et la fatigue te coûtent <b>"+Math.round(tax)+" s/km</b> vs ton seuil frais. "+
+           "Marge des deux côtés : course compromise + efficacité stations.";
+    } else {
+      read="Tu cours plus lentement que ton allure easy à froid. Ce sont les stations et la fatigue qui plafonnent "+
+           "ta course - priorité force, efficacité stations et courses compromises.";
+    }
+    diag.innerHTML="<b>Taxe de fatigue : "+fmtSec(tax)+"</b> vs ton allure hard (seuil) à froid.<br>"+read;
+    diag.classList.remove("hidden");
+    note.classList.add("hidden");
+  } else {
+    diag.classList.add("hidden");
+    note.classList.remove("hidden");
+    note.innerHTML="Le race pace Hyrox (ton allure de course pendant un Hyrox, pas ta course a pied classique) est ici une estimation (zone soutenable). Renseigne l'allure moyenne d'un Hyrox passé "+
+      "pour obtenir ta vraie valeur et la taxe de fatigue mesurée.";
+  }
+
+  document.getElementById("equiv").innerHTML=DISTS.map(function(d){
+    var t=timeForDist(vdot,d.m);
+    return '<tr><td>'+d.label+'</td><td class="num">'+fmtTime(t)+'</td><td class="num">'+fmtPace(t/(d.m/1000))+'/km</td></tr>';
+  }).join("");
+
+  out.classList.remove("hidden");
+  enterResultView();
+};
+
+// ===== Bascule avant/après calcul =====
+function enterResultView(){
+  document.getElementById("inputZone").classList.add("hidden");
+  document.getElementById("summaryBar").classList.remove("hidden");
+  document.getElementById("toolsBar").classList.remove("hidden");
+  // Résumé à partir de lastRefInfo (perf de référence, Hyrox, profil)
+  var main="-", meta="";
+  if(lastRefInfo && lastRefInfo.length){
+    main=lastRefInfo[0].replace(/^Perf de référence : /,"").replace(/^Hyrox seul : /,"Hyrox ");
+    meta=lastRefInfo.slice(1).join(" · ");
+  }
+  document.getElementById("summaryMain").textContent=main;
+  document.getElementById("summaryMeta").textContent=meta;
+  window.scrollTo({top:0,behavior:"smooth"});
+}
+function enterEditView(){
+  document.getElementById("inputZone").classList.remove("hidden");
+  document.getElementById("summaryBar").classList.add("hidden");
+  document.getElementById("toolsBar").classList.add("hidden");
+  window.scrollTo({top:0,behavior:"smooth"});
+}
+document.getElementById("editBtn").addEventListener("click", enterEditView);
+// Barre outils : scroll vers l'outil ou déclenche l'action
+[].slice.call(document.querySelectorAll("#toolsBar .tbtn")).forEach(function(btn){
+  btn.addEventListener("click", function(){
+    var sc=btn.dataset.scroll, tool=btn.dataset.tool;
+    if(tool==="export"){ exportImage(); return; }
+    if(tool==="methodo"){
+      var mt=document.getElementById("methodoToggle");
+      var mp=document.getElementById("tab-methodo");
+      if(mp && !mp.classList.contains("active")){ mt.click(); }
+      else if(mp){ mp.scrollIntoView({behavior:"smooth",block:"start"}); }
+      return;
+    }
+    // scroll vers un convertisseur (repère par un id d'ancrage)
+    var target=document.getElementById(sc);
+    if(target) target.scrollIntoView({behavior:"smooth",block:"start"});
+  });
+});
+
+// ============ Convertisseur allure -> temps ============
+function fmtSplitTime(sec){
+  if(sec<60) return sec.toFixed(1)+" s";
+  var m=Math.floor(sec/60), s=sec%60;
+  return m+":"+(s<10?"0":"")+s.toFixed(1);
+}
+function updateConverter(){
+  var paceSec=parseTime(document.getElementById("convPace").value);
+  var dist=parseFloat(document.getElementById("convDist").value);
+  var out=document.getElementById("convResult");
+  if(!paceSec || !dist || dist<=0){ out.textContent="--:--"; return; }
+  out.textContent=fmtSplitTime(paceSec*(dist/1000));
+}
+document.getElementById("convPace").addEventListener("input", updateConverter);
+document.getElementById("convDist").addEventListener("input", updateConverter);
+[].slice.call(document.querySelectorAll(".distbtn")).forEach(function(btn){
+  btn.addEventListener("click", function(){
+    document.getElementById("convDist").value=btn.dataset.d;
+    [].slice.call(document.querySelectorAll(".distbtn")).forEach(function(b){b.classList.remove("active");});
+    btn.classList.add("active");
+    updateConverter();
+  });
+});
+
+// Menu "allure calculee" : rempli depuis les zones calculees si des donnees ont ete encodees.
+// Choisir une zone remplit le champ allure avec le centre de sa fourchette.
+function populateConvZone(){
+  var sel=document.getElementById("convZone");
+  if(!lastAllures || !lastAllures.length){ sel.style.display="none"; return; }
+  var opts='<option value="">— ou choisis une allure calculée —</option>';
+  lastAllures.forEach(function(a,i){
+    var mid=Math.round((a.lo+a.hi)/2);
+    opts+='<option value="'+mid+'">'+a.n+' ('+fmtPace(a.lo)+" - "+fmtPace(a.hi)+' /km)</option>';
+  });
+  sel.innerHTML=opts;
+  sel.style.display="block";
+}
+document.getElementById("convZone").addEventListener("change", function(){
+  if(this.value){
+    document.getElementById("convPace").value=fmtPace(parseInt(this.value,10));
+    updateConverter();
+  }
+});
+
+// ============ Convertisseur allure <-> km/h ============
+document.getElementById("convPaceKmh").addEventListener("input", function(){
+  var paceSec=parseTime(this.value);
+  var kmhField=document.getElementById("convKmh");
+  kmhField.value = paceSec ? (3600/paceSec).toFixed(1) : "";
+});
+document.getElementById("convKmh").addEventListener("input", function(){
+  var kmh=parseFloat(this.value);
+  var paceField=document.getElementById("convPaceKmh");
+  paceField.value = (kmh && kmh>0) ? fmtPace(3600/kmh) : "";
+});
+
+// ============ Export image (pense-bete) ============
+// Dessine directement le contenu sur un canvas plutot que de capturer le DOM : plus fiable,
+// pas de dependance externe, fond clair adapte a l'impression.
+function decodeEntities(s){ return s.replace(/&middot;/g,"\u00b7").replace(/&mdash;/g,"\u2014").replace(/<[^>]+>/g,""); }
+function exportImage(){
+  if(!lastAllures) return;
+  var refLines = lastRefInfo || [];
+  var W=800, rowH=100, headerH=150 + refLines.length*22, footerH=55;
+  var H=headerH + lastAllures.length*rowH + footerH;
+  var canvas=document.createElement("canvas");
+  canvas.width=W; canvas.height=H;
+  var ctx=canvas.getContext("2d");
+
+  ctx.fillStyle="#FFFFFF"; ctx.fillRect(0,0,W,H);
+  ctx.fillStyle="#1E1B18"; ctx.font="bold 28px -apple-system, Helvetica, sans-serif";
+  ctx.fillText("Allures d'entrainement", 30, 48);
+  var today=new Date();
+  var dateStr=String(today.getDate()).padStart(2,"0")+"/"+String(today.getMonth()+1).padStart(2,"0")+"/"+today.getFullYear();
+  ctx.fillStyle="#6E6459"; ctx.font="14px -apple-system, Helvetica, sans-serif";
+  ctx.fillText("Genere le "+dateStr+" - unite : "+(currentUnit==="kmh"?"km/h":"min/km"), 30, 72);
+  // Performances de reference : sur quoi ces allures reposent (pense-bete auto-suffisant)
+  var ry=98;
+  ctx.font="13px -apple-system, Helvetica, sans-serif";
+  refLines.forEach(function(line){
+    ctx.fillStyle="#8A8175";
+    ctx.fillText(line, 30, ry);
+    ry += 22;
+  });
+  ctx.strokeStyle="#E0DCD4"; ctx.beginPath(); ctx.moveTo(30,ry-4); ctx.lineTo(W-30,ry-4); ctx.stroke();
+
+  var y=headerH;
+  lastAllures.forEach(function(a){
+    var paceStr = currentUnit==="kmh" ? fmtKmh(a.hi)+" - "+fmtKmh(a.lo) : fmtPace(a.lo)+" - "+fmtPace(a.hi)+" /km";
+    var repere = decodeEntities(repereStr(a, lastVdot));
+
+    ctx.fillStyle=zoneColorHex(a.n); ctx.fillRect(30, y-28, 4, 66);
+
+    ctx.fillStyle="#1E1B18"; ctx.font="bold 20px -apple-system, Helvetica, sans-serif";
+    ctx.fillText(a.n, 50, y-6);
+    ctx.fillStyle="#8A8175"; ctx.font="13px -apple-system, Helvetica, sans-serif";
+    ctx.fillText(a.tag.replace(/<[^>]+>/g,""), 50, y+12);
+
+    ctx.fillStyle="#1E1B18"; ctx.font="bold 26px -apple-system, Helvetica, sans-serif"; ctx.textAlign="right";
+    ctx.fillText(paceStr, W-30, y-2);
+    ctx.textAlign="left";
+
+    ctx.fillStyle="#0F8074"; ctx.font="13px -apple-system, Helvetica, sans-serif";
+    ctx.fillText(repere, 50, y+32);
+
+    y += rowH;
+    if(y < H-footerH){ ctx.strokeStyle="#EFEBE3"; ctx.beginPath(); ctx.moveTo(30,y-48); ctx.lineTo(W-30,y-48); ctx.stroke(); }
+  });
+
+  ctx.fillStyle="#B0A89A"; ctx.font="12px -apple-system, Helvetica, sans-serif";
+  ctx.fillText("Beglorious - estimation a titre indicatif, a affiner au ressenti terrain.", 30, H-22);
+
+  var link=document.createElement("a");
+  link.download="allures-entrainement.png";
+  link.href=canvas.toDataURL("image/png");
+  link.click();
+}
+document.getElementById("exportImgBtn").addEventListener("click", exportImage);
+</script>
+</body>
+</html>
