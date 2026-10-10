@@ -235,6 +235,8 @@
     <div class="sub">Calculateurs d’allure, Erg & RM</div>
   </header>
 
+  <div class="audience-switch" role="group" aria-label="Mode d’utilisation"><button type="button" data-audience="athlete" aria-pressed="true">Athlète</button><button type="button" data-audience="coach" aria-pressed="false">Coach</button></div>
+  <p id="audienceHint" class="hint">Vue simple : tes allures et tes cibles. Les détails restent accessibles.</p>
   <div class="maintabs" role="tablist" aria-label="Calculateurs Beglorious">
     <button type="button" class="maintab on" id="main-tab-calc" role="tab" aria-selected="true" aria-controls="panel-calc" data-panel="calc">Allures</button>
     <button type="button" class="maintab" id="main-tab-outils" role="tab" aria-selected="false" aria-controls="panel-outils" tabindex="-1" data-panel="outils">Outils course</button>
@@ -292,8 +294,8 @@
       exacte (ex. 8423 m) ou utiliser un test à durée fixe (ex. la distance couverte en 40 min). Les raccourcis
       ci-dessus remplissent juste la distance. Les perfs datées de 12 mois ou moins par rapport à la plus récente
       sont moyennées ; les plus anciennes sont ignorées.</p>
-    <button class="go" id="calcBtn">Calculer mes allures</button>
-    <p class="hint" id="dateError" style="display:none;color:var(--accent);font-weight:600;">Ajoute une date à chaque performance renseignée : sans ça, impossible de savoir laquelle est la plus récente pour la moyenne.</p>
+    <p id="courseError" role="alert" class="hint" hidden style="color:#a33;font-weight:600"></p><button class="go" id="calcBtn">Calculer mes allures</button>
+    <p class="hint" id="dateError" style="display:none;color:var(--accent);font-weight:600;">Ajoute une date à chaque performance renseignée : sans ça, impossible de savoir laquelle est la plus récente pour choisir la référence.</p>
     <p class="hint" id="durationWarn" style="display:none;color:var(--warn);font-weight:600;"></p>
   </div>
 
@@ -640,6 +642,7 @@ $(&#x27;effortMachine&#x27;).addEventListener(&#x27;change&#x27;,()=&gt;settings
 if(document.modelContext?.registerTool){try{Promise.resolve(document.modelContext.registerTool({name:&#x27;configure_effort&#x27;,description:&#x27;Calculate an effort and its WOD substitutions in the visible calculator.&#x27;,inputSchema:{type:&#x27;object&#x27;,properties:{machine:{enum:[&#x27;row&#x27;,&#x27;ski&#x27;,&#x27;bike&#x27;,&#x27;echo&#x27;,&#x27;run&#x27;]},quantity:{type:&#x27;number&#x27;,exclusiveMinimum:0},seconds:{type:&#x27;number&#x27;,exclusiveMinimum:0},unit:{enum:[&#x27;cal&#x27;,&#x27;m&#x27;]},sex:{enum:[&#x27;h&#x27;,&#x27;f&#x27;]}},required:[&#x27;machine&#x27;,&#x27;quantity&#x27;,&#x27;seconds&#x27;,&#x27;unit&#x27;,&#x27;sex&#x27;],additionalProperties:false},execute:i=&gt;{calculateEffort(i.machine,i.unit,i.quantity,&#x27;seconds&#x27;,i.seconds);convertWod(i.unit===&#x27;cal&#x27;?&#x27;cal&#x27;:&#x27;dist&#x27;,i.machine,i.sex,i.quantity);$(&#x27;effortMachine&#x27;).value=i.machine;settings();$(&#x27;effortUnit&#x27;).value=i.unit;$(&#x27;effortAmount&#x27;).value=i.quantity;$(&#x27;effortSex&#x27;).value=i.sex;$(&#x27;effortValue&#x27;).value=i.seconds;renderEffort();return {result:$(&#x27;effortResult&#x27;).textContent,conversions:$(&#x27;effortConversions&#x27;).textContent}},annotations:{readOnlyHint:false}})).catch(()=&gt;{})}catch{}}
 
 
+let durationScore=null;
 let fieldMachine=&#x27;ski&#x27;,fieldMode=&#x27;convert&#x27;,fieldUnit=&#x27;watts&#x27;,fieldSex=&#x27;h&#x27;,fieldCopyText=&#x27;&#x27;;
 const fieldLabels={watts:[&#x27;Puissance&#x27;,&#x27;W&#x27;,&#x27;235&#x27;],pace:[&#x27;Allure&#x27;,&#x27;/500 m&#x27;,&#x27;2:00&#x27;],cph:[&#x27;Calories par heure&#x27;,&#x27;cal/h&#x27;,&#x27;1200&#x27;],cpm:[&#x27;Calories par minute&#x27;,&#x27;cal/min&#x27;,&#x27;20&#x27;],rpm:[&#x27;Cadence&#x27;,&#x27;RPM&#x27;,&#x27;65&#x27;],kmh:[&#x27;Vitesse&#x27;,&#x27;km/h&#x27;,&#x27;12&#x27;],mph:[&#x27;Vitesse&#x27;,&#x27;mph&#x27;,&#x27;12&#x27;],mps:[&#x27;Vitesse&#x27;,&#x27;m/s&#x27;,&#x27;3&#x27;],seconds:[&#x27;Temps visé&#x27;,&#x27;m:ss&#x27;,&#x27;1:00&#x27;]};
 const F=id=&gt;document.getElementById(&#x27;field-&#x27;+id);
@@ -674,13 +677,15 @@ function fieldMetrics(r,total){const a=r.empirical?&#x27;≈ &#x27;:&#x27;&#x27;
  if(r.cph!==undefined)secondary.push(fieldTile(&#x27;Débit&#x27;,a+fmt(r.cph/60),&#x27;cal/min&#x27;));if(r.metres!==undefined){secondary.push(fieldTile(&#x27;Vitesse&#x27;,fmt(r.metres/r.seconds*3.6),&#x27;km/h&#x27;));secondary.push(fieldTile(&#x27;Distance / minute&#x27;,fmt(r.metres/r.seconds*60),&#x27;m/min&#x27;));if(r.echoDistance)secondary.push(fieldTile(&#x27;Vitesse&#x27;,fmt(r.metres/r.seconds*3600/1609.344),&#x27;mph&#x27;));}
  return &#x27;&lt;div class=&quot;field-results-grid&quot;&gt;&#x27;+primary.join(&#x27;&#x27;)+&#x27;&lt;/div&gt;&#x27;+(secondary.length?&#x27;&lt;details&gt;&lt;summary&gt;Autres unités&lt;/summary&gt;&lt;div class=&quot;field-results-grid&quot;&gt;&#x27;+secondary.join(&#x27;&#x27;)+&#x27;&lt;/div&gt;&lt;/details&gt;&#x27;:&#x27;&#x27;);}
 function fieldRender(){
- F(&#x27;status&#x27;).textContent=&#x27;&#x27;;
+ F(&#x27;status&#x27;).textContent=&#x27;&#x27;;durationScore=null;
  try{
  let result,context,note,outside=false,extrapolated=false;const m=fieldMachine;
  if(fieldMode===&#x27;convert&#x27;){
- const base=fieldRate(m,fieldUnit,F(&#x27;value&#x27;).value);outside=!!base.modelOutside;extrapolated=!!base.modelExtrapolated;const min=Number(F(&#x27;min&#x27;).value||0),sec=Number(F(&#x27;sec&#x27;).value||0);if(!Number.isInteger(min)||min&lt;0||!Number.isInteger(sec)||sec&lt;0||sec&gt;=60)throw Error(&#x27;Minutes entières ≥ 0 ; secondes entre 0 et 59.&#x27;);const duration=min*60+sec;
+ const base=fieldRate(m,fieldUnit,F(&#x27;value&#x27;).value);outside=!!base.modelOutside;extrapolated=!!base.modelExtrapolated;const min=Number(F(&#x27;min&#x27;).value||0),sec=Number(F(&#x27;sec&#x27;).value||0);if(!Number.isInteger(min)||min&lt;0||!Number.isInteger(sec)||sec&lt;0||sec&gt;=60)throw Error(&#x27;Minutes entières ≥ 0 ; secondes entre 0 et 59.&#x27;);const duration=min*60+sec;if(!Number.isSafeInteger(duration)||duration&gt;86400)throw Error(&#x27;Durée maximale : 24 heures. Vérifie les minutes.&#x27;);
  const r=duration?{...base,seconds:duration,...(base.metres!==undefined?{metres:base.metres*duration}:{}),...(base.calories!==undefined?{calories:base.calories*duration}:{})}:base;
- result=fieldMetrics(r,duration&gt;0);context=machineLabels[m]+(duration?&#x27; · &#x27;+time(duration).replace(&#x27;.&#x27;,&#x27;,&#x27;)+&#x27; d’effort&#x27;:&#x27; · Intensité&#x27;);
+ if(Object.values(r).some(v=&gt;typeof v===&#x27;number&#x27;&amp;&amp;(!Number.isFinite(v)||v&lt;=0||v&gt;Number.MAX_SAFE_INTEGER)))throw Error(&#x27;Résultat hors du domaine numérique. Vérifie la saisie.&#x27;);
+ durationScore=duration&gt;0?r:null;
+ result=fieldMetrics(r,duration&gt;0)+(duration&gt;0?&#x27;&lt;div class=&quot;field-duration-equivalence&quot;&gt;&lt;p&gt;&lt;b&gt;Utiliser ce score pour une équivalence WOD&lt;/b&gt;&lt;br&gt;Choisis la base de programmation :&lt;/p&gt;&lt;div class=&quot;field-chips&quot;&gt;&#x27;+(r.calories!==undefined?&#x27;&lt;button type=&quot;button&quot; data-score-basis=&quot;cal&quot;&gt;Calories&lt;/button&gt;&#x27;:&#x27;&#x27;)+(r.metres!==undefined?&#x27;&lt;button type=&quot;button&quot; data-score-basis=&quot;m&quot;&gt;Distance&lt;/button&gt;&#x27;:&#x27;&#x27;)+&#x27;&lt;/div&gt;&lt;/div&gt;&#x27;:&#x27;&#x27;);context=machineLabels[m]+(duration?&#x27; · &#x27;+time(duration).replace(&#x27;.&#x27;,&#x27;,&#x27;)+&#x27; d’effort&#x27;:&#x27; · Intensité&#x27;);
  }else if(fieldMode===&#x27;target&#x27;){
  const known=F(&#x27;known&#x27;).value,raw=known===&#x27;seconds&#x27;?String(parseTime(F(&#x27;target-value&#x27;).value)):F(&#x27;target-value&#x27;).value;
  const r=calculateEffort(m,F(&#x27;target-unit&#x27;).value,Number(F(&#x27;quantity&#x27;).value),known,raw);
@@ -740,7 +745,7 @@ F(&#x27;value&#x27;).setAttribute(&#x27;aria-label&#x27;,&#x27;Intensité connue
 fieldRender();
 &lt;/script&gt;&lt;script&gt;
 const uncheckedCalculateEffort=calculateEffort;
-calculateEffort=function(...args){if(args.some(v=&gt;typeof v===&#x27;number&#x27;&amp;&amp;(!Number.isFinite(v)||Math.abs(v)&gt;Number.MAX_SAFE_INTEGER)))throw Error(&#x27;Saisie hors de la précision numérique de l’outil.&#x27;);const result=uncheckedCalculateEffort(...args);if(Object.values(result).some(v=&gt;typeof v===&#x27;number&#x27;&amp;&amp;(!Number.isFinite(v)||v&lt;=0||v&gt;Number.MAX_SAFE_INTEGER)))throw Error(&#x27;Valeur trop grande ou trop petite pour un calcul fiable. Vérifie les unités et la saisie.&#x27;);if(result.seconds&lt;0.05||(result.split!==undefined&amp;&amp;result.split&lt;0.05))throw Error(&#x27;Temps ou allure inférieur à la précision d’affichage de 0,1 seconde. Vérifie les unités.&#x27;);return result;};
+calculateEffort=function(...args){if(args.some(v=&gt;typeof v===&#x27;number&#x27;&amp;&amp;(!Number.isFinite(v)||Math.abs(v)&gt;Number.MAX_SAFE_INTEGER)))throw Error(&#x27;Saisie hors de la précision numérique de l’outil.&#x27;);const result=uncheckedCalculateEffort(...args);if(args[0]===&#x27;run&#x27;&amp;&amp;(!Number.isFinite(result.split)||result.split&lt;90||result.split&gt;1800))throw Error(&#x27;Course : allure de 1:30 à 30:00/km (2 à 40 km/h). Vérifie les unités.&#x27;);if(Object.values(result).some(v=&gt;typeof v===&#x27;number&#x27;&amp;&amp;(!Number.isFinite(v)||v&lt;=0||v&gt;Number.MAX_SAFE_INTEGER)))throw Error(&#x27;Valeur trop grande ou trop petite pour un calcul fiable. Vérifie les unités et la saisie.&#x27;);if(result.seconds&lt;0.05||(result.split!==undefined&amp;&amp;result.split&lt;0.05))throw Error(&#x27;Temps ou allure inférieur à la précision d’affichage de 0,1 seconde. Vérifie les unités.&#x27;);return result;};
 if(typeof fieldRender===&#x27;function&#x27;)fieldRender();else renderEffort();
 &lt;/script&gt;&lt;script&gt;$(&#x27;durationBasis&#x27;).addEventListener(&#x27;change&#x27;,renderEffort);&lt;/script&gt;&lt;/html&gt;&lt;script&gt;
 (function(){
@@ -756,6 +761,8 @@ if(typeof fieldRender===&#x27;function&#x27;)fieldRender();else renderEffort();
   });
   reportHeight();
 })();
+&lt;/script&gt;&lt;script&gt;
+F(&#x27;results&#x27;).addEventListener(&#x27;click&#x27;,event=&gt;{const button=event.target.closest(&#x27;[data-score-basis]&#x27;);if(!button||!durationScore)return;const unit=button.dataset.scoreBasis,value=unit===&#x27;cal&#x27;?durationScore.calories:durationScore.metres;if(!Number.isFinite(value)||value&lt;=0)return;F(&#x27;swap-unit&#x27;).value=unit;F(&#x27;swap-q&#x27;).value=String(Math.round(value*1000)/1000);fieldSwitch(&#x27;swap&#x27;);});
 &lt;/script&gt;"></iframe>
   </div>
 
@@ -768,8 +775,8 @@ if(typeof fieldRender===&#x27;function&#x27;)fieldRender();else renderEffort();
 :root{--bg:#D8B78D}
 body{font-family:&quot;Work Sans&quot;,-apple-system,BlinkMacSystemFont,&quot;Segoe UI&quot;,sans-serif}
 .wrap{max-width:none;padding:0 0 12px;margin:0}h2{font-size:19px;letter-spacing:0}
-&lt;/style&gt;&lt;div class=&quot;wrap&quot;&gt;&lt;section id=&quot;strength&quot;&gt;&lt;div class=&quot;card&quot;&gt;&lt;h2&gt;Estimer ton 1RM&lt;/h2&gt;&lt;div class=&quot;grid&quot;&gt;&lt;label&gt;Charge soulevée (kg)&lt;input id=&quot;load&quot; value=&quot;100&quot; inputmode=&quot;decimal&quot; type=&quot;text&quot; min=&quot;0.01&quot; step=&quot;any&quot;&gt;&lt;/label&gt;&lt;label&gt;Répétitions réalisées&lt;select id=&quot;reps&quot;&gt;&lt;/select&gt;&lt;/label&gt;&lt;label&gt;Pourcentage personnalisé&lt;input id=&quot;percent&quot; inputmode=&quot;decimal&quot; type=&quot;text&quot; value=&quot;75&quot; min=&quot;1&quot; max=&quot;150&quot; step=&quot;any&quot;&gt;&lt;/label&gt;&lt;/div&gt;&lt;div id=&quot;strengthResult&quot; class=&quot;result&quot; aria-live=&quot;polite&quot;&gt;&lt;/div&gt;&lt;div class=&quot;note&quot;&gt;Renseigne une série proche du maximum de répétitions possible à cette charge. Le résultat est une estimation : exercice, technique et profil de l’athlète influencent la relation entre répétitions et charge. Au-delà de 10 répétitions, interprète le résultat avec davantage de prudence. Les charges proposées sont arrondies ; le calcul du 1RM ne l’est pas.&lt;/div&gt;&lt;/div&gt;&lt;/section&gt;&lt;details class=&quot;card&quot; id=&quot;modelSettings&quot;&gt;&lt;summary&gt;Réglages · modèle et arrondi&lt;/summary&gt;&lt;p&gt;&lt;small&gt;Epley est présélectionné pour l’estimation du 1RM. Tu peux choisir une autre référence ; le modèle actif est indiqué sous le résultat.&lt;/small&gt;&lt;/p&gt;&lt;label&gt;Référence du calcul&lt;select id=&quot;model&quot;&gt;&lt;option value=&quot;nsca&quot;&gt;NSCA · 1 à 10 et 12 RM&lt;/option&gt;&lt;option value=&quot;thibaudeau&quot;&gt;Thibaudeau · 3 à 5 RM&lt;/option&gt;&lt;option value=&quot;poliquin&quot;&gt;Poliquin · 1 à 20 RM (historique)&lt;/option&gt;&lt;option value=&quot;epley&quot; selected&gt;Epley · formule&lt;/option&gt;&lt;option value=&quot;brzycki&quot;&gt;Brzycki · formule&lt;/option&gt;&lt;option value=&quot;average&quot;&gt;Moyenne Epley / Brzycki&lt;/option&gt;&lt;option value=&quot;strengthlevel&quot;&gt;Strength Level · tableau&lt;/option&gt;&lt;/select&gt;&lt;/label&gt;&lt;p id=&quot;modelHint&quot; class=&quot;note&quot;&gt;&lt;/p&gt;&lt;label&gt;Arrondi des charges&lt;select id=&quot;round&quot;&gt;&lt;option value=&quot;2.5&quot;&gt;2,5 kg&lt;/option&gt;&lt;option value=&quot;1&quot;&gt;1 kg&lt;/option&gt;&lt;option value=&quot;0.5&quot;&gt;0,5 kg&lt;/option&gt;&lt;option value=&quot;0.1&quot;&gt;0,1 kg&lt;/option&gt;&lt;/select&gt;&lt;/label&gt;&lt;/details&gt;
-&lt;details class=&quot;card&quot;&gt;&lt;summary&gt;Méthode &amp; références · RM&lt;/summary&gt;&lt;p&gt;Epley : charge × (1 + répétitions / 30). Brzycki : charge × 36 / (37 − répétitions). La moyenne est calculée sur les deux estimations du 1RM. À 1 répétition, l’outil utilise la charge comme 1RM. Plage retenue dans l’outil pour ces formules : 1–10 répétitions.&lt;/p&gt;&lt;p&gt;&lt;a href=&quot;https://brzycki.scholar.princeton.edu/publications/strength-testing-%E2%80%93-predicting-one-rep-max-reps-fatigue&quot; target=&quot;_blank&quot; rel=&quot;noopener&quot;&gt;Matt Brzycki (1993), Strength Testing—Predicting a One-Rep Max from Reps-to-Fatigue&lt;/a&gt;. Les deux équations sont également reproduites dans les méthodes de &lt;a href=&quot;https://doi.org/10.21203/rs.3.rs-2165112/v1&quot; target=&quot;_blank&quot; rel=&quot;noopener&quot;&gt;Schneider et al. (prépublication, 2022)&lt;/a&gt; ; cette citation vérifie les équations et ne constitue pas une validation pour tous les athlètes.&lt;/p&gt;&lt;p&gt;&lt;a href=&quot;https://strengthlevel.com/one-rep-max-calculator&quot; target=&quot;_blank&quot; rel=&quot;noopener&quot;&gt;Strength Level, Repetition Percentages of 1RM&lt;/a&gt; : tableau consulté le 2 octobre 2026, valeurs 1–10 RM conservées.&lt;/p&gt;&lt;p&gt;Choix par défaut : Epley, pour convertir une série en estimation du 1RM. Il n’est pas établi ici qu’un modèle soit le plus précis pour chaque athlète.&lt;/p&gt;&lt;p&gt;&lt;a href=&quot;https://link.springer.com/article/10.1007/s40279-023-01937-7&quot; target=&quot;_blank&quot; rel=&quot;noopener&quot;&gt;Nuzzo, Pinto, Nosaka &amp; Steele · Sports Medicine (2024, publication en ligne le 4 octobre 2023)&lt;/a&gt; proposent une synthèse de la relation entre % du 1RM et répétitions maximales. Cette étude ne démontre pas que l’inversion de cette relation estime mieux le 1RM individuel que les autres modèles. Elle ne suffit donc pas à justifier son remplacement comme modèle par défaut dans cet outil.&lt;/p&gt;&lt;p&gt;1RM estimé = charge soulevée ÷ (% de la référence / 100). Chaque calcul utilise le modèle sélectionné. La moyenne Epley / Brzycki est utilisée uniquement si cette option est choisie. Aucune valeur manquante des tableaux n’est extrapolée.&lt;/p&gt;&lt;p&gt;&lt;a href=&quot;https://www.nsca.com/contentassets/61d813865e264c6e852cadfe247eae52/nsca_training_load_chart.pdf&quot; target=&quot;_blank&quot; rel=&quot;noopener&quot;&gt;NSCA · Training Load Chart&lt;/a&gt; : tableau officiel, 1 à 10 et 12 répétitions. Le tableau ne publie pas de valeur pour 11 répétitions.&lt;/p&gt;&lt;p&gt;&lt;a href=&quot;https://archive.t-nation.com/training/tip-one-heavy-rep/&quot; target=&quot;_blank&quot; rel=&quot;noopener&quot;&gt;Christian Thibaudeau · Tip: One. Heavy. Rep. (2019)&lt;/a&gt; : 3 RM = 94 %, 4 RM = 90 %, 5 RM = 87 %. Seules ces trois valeurs sont utilisées.&lt;/p&gt;&lt;p&gt;&lt;a href=&quot;https://www.scribd.com/document/909400788/Wt-Ice-Package-July-2021&quot; target=&quot;_blank&quot; rel=&quot;noopener&quot;&gt;Poliquin · tableau attribué à 1986, reproduit dans le guide BCRPA&lt;/a&gt; : fiche révisée en juillet 2011, page 13, copie accessible sur Scribd. Référence historique, sans vérification de la publication originale de 1986.&lt;/p&gt;&lt;p&gt;Références consultées le 2 octobre 2026. Aucun de ces tableaux ne garantit la précision individuelle ni une application spécifique aux mouvements olympiques.&lt;/p&gt;&lt;/details&gt;
+&lt;/style&gt;&lt;div class=&quot;wrap&quot;&gt;&lt;section id=&quot;strength&quot;&gt;&lt;div class=&quot;card&quot;&gt;&lt;h2&gt;RM &amp; projections&lt;/h2&gt;&lt;label style=&quot;margin-bottom:16px&quot;&gt;Je connais…&lt;select id=&quot;rmSource&quot;&gt;&lt;option value=&quot;series&quot;&gt;Une série réalisée&lt;/option&gt;&lt;option value=&quot;max&quot;&gt;Mon 1RM&lt;/option&gt;&lt;/select&gt;&lt;/label&gt;&lt;div class=&quot;grid&quot;&gt;&lt;label&gt;&lt;span id=&quot;loadLabel&quot;&gt;Charge soulevée (kg)&lt;/span&gt;&lt;input id=&quot;load&quot; value=&quot;100&quot; inputmode=&quot;decimal&quot; type=&quot;text&quot; min=&quot;0.01&quot; step=&quot;any&quot;&gt;&lt;/label&gt;&lt;label id=&quot;sourceRepsLabel&quot;&gt;Répétitions réalisées&lt;select id=&quot;reps&quot;&gt;&lt;/select&gt;&lt;/label&gt;&lt;label&gt;Pourcentage personnalisé&lt;input id=&quot;percent&quot; inputmode=&quot;decimal&quot; type=&quot;text&quot; value=&quot;75&quot; min=&quot;1&quot; max=&quot;150&quot; step=&quot;any&quot;&gt;&lt;/label&gt;&lt;/div&gt;&lt;div id=&quot;strengthResult&quot; class=&quot;result&quot; aria-live=&quot;polite&quot;&gt;&lt;/div&gt;&lt;div class=&quot;note&quot; id=&quot;seriesAdvice&quot;&gt;Renseigne une série proche du maximum de répétitions possible à cette charge. Le résultat est une estimation : exercice, technique et profil de l’athlète influencent la relation entre répétitions et charge. Au-delà de 10 répétitions, interprète le résultat avec davantage de prudence. Les charges proposées sont arrondies ; le calcul du 1RM ne l’est pas.&lt;/div&gt;&lt;/div&gt;&lt;/section&gt;&lt;section class=&quot;card&quot; id=&quot;rmProjection&quot;&gt;&lt;h2&gt;Projeter une autre série&lt;/h2&gt;&lt;div class=&quot;grid&quot;&gt;&lt;div&gt;&lt;label&gt;Je veux faire…&lt;select id=&quot;projectionReps&quot;&gt;&lt;/select&gt;&lt;/label&gt;&lt;div id=&quot;projectionLoadResult&quot; class=&quot;result&quot; aria-live=&quot;polite&quot;&gt;&lt;/div&gt;&lt;/div&gt;&lt;div&gt;&lt;label&gt;Avec cette charge (kg)&lt;input id=&quot;projectionLoad&quot; type=&quot;text&quot; inputmode=&quot;decimal&quot; value=&quot;80&quot;&gt;&lt;/label&gt;&lt;div id=&quot;projectionRepsResult&quot; class=&quot;result&quot; aria-live=&quot;polite&quot;&gt;&lt;/div&gt;&lt;/div&gt;&lt;/div&gt;&lt;p class=&quot;note&quot;&gt;Répétitions maximales estimées pour une seule série, avec la même technique et le même exercice. Une fourchette indique les deux repères voisins du modèle, pas une garantie de performance. L’arrondi choisi s’applique aux charges proposées.&lt;/p&gt;&lt;/section&gt;&lt;details class=&quot;card&quot; id=&quot;modelSettings&quot;&gt;&lt;summary&gt;Réglages · modèle et arrondi&lt;/summary&gt;&lt;p&gt;&lt;small&gt;Epley est présélectionné pour l’estimation du 1RM. Tu peux choisir une autre référence ; le modèle actif est indiqué sous le résultat.&lt;/small&gt;&lt;/p&gt;&lt;label&gt;Référence du calcul&lt;select id=&quot;model&quot;&gt;&lt;option value=&quot;nsca&quot;&gt;NSCA · 1 à 10 et 12 RM&lt;/option&gt;&lt;option value=&quot;thibaudeau&quot;&gt;Thibaudeau · 3 à 5 RM&lt;/option&gt;&lt;option value=&quot;poliquin&quot;&gt;Poliquin · 1 à 20 RM (historique)&lt;/option&gt;&lt;option value=&quot;epley&quot; selected&gt;Epley · formule&lt;/option&gt;&lt;option value=&quot;brzycki&quot;&gt;Brzycki · formule&lt;/option&gt;&lt;option value=&quot;average&quot;&gt;Moyenne Epley / Brzycki&lt;/option&gt;&lt;option value=&quot;strengthlevel&quot;&gt;Strength Level · tableau&lt;/option&gt;&lt;/select&gt;&lt;/label&gt;&lt;p id=&quot;modelHint&quot; class=&quot;note&quot;&gt;&lt;/p&gt;&lt;label&gt;Arrondi des charges&lt;select id=&quot;round&quot;&gt;&lt;option value=&quot;2.5&quot;&gt;2,5 kg&lt;/option&gt;&lt;option value=&quot;1&quot;&gt;1 kg&lt;/option&gt;&lt;option value=&quot;0.5&quot;&gt;0,5 kg&lt;/option&gt;&lt;option value=&quot;0.1&quot;&gt;0,1 kg&lt;/option&gt;&lt;/select&gt;&lt;/label&gt;&lt;/details&gt;
+&lt;details class=&quot;card&quot;&gt;&lt;summary&gt;Méthode &amp; références · RM&lt;/summary&gt;&lt;p&gt;Epley : charge × (1 + répétitions / 30). Brzycki : charge × 36 / (37 − répétitions). La moyenne est calculée sur les deux estimations du 1RM. À 1 répétition, l’outil utilise la charge comme 1RM. Plage retenue dans l’outil pour ces formules : 1–10 répétitions.&lt;/p&gt;&lt;p&gt;&lt;a href=&quot;https://brzycki.scholar.princeton.edu/publications/strength-testing-%E2%80%93-predicting-one-rep-max-reps-fatigue&quot; target=&quot;_blank&quot; rel=&quot;noopener&quot;&gt;Matt Brzycki (1993), Strength Testing—Predicting a One-Rep Max from Reps-to-Fatigue&lt;/a&gt;. Les deux équations sont également reproduites dans les méthodes de &lt;a href=&quot;https://doi.org/10.21203/rs.3.rs-2165112/v1&quot; target=&quot;_blank&quot; rel=&quot;noopener&quot;&gt;Schneider et al. (prépublication, 2022)&lt;/a&gt; ; cette citation vérifie les équations et ne constitue pas une validation pour tous les athlètes.&lt;/p&gt;&lt;p&gt;&lt;a href=&quot;https://strengthlevel.com/one-rep-max-calculator&quot; target=&quot;_blank&quot; rel=&quot;noopener&quot;&gt;Strength Level, Repetition Percentages of 1RM&lt;/a&gt; : tableau consulté le 2 octobre 2026, valeurs 1–10 RM conservées.&lt;/p&gt;&lt;p&gt;Choix par défaut : Epley, pour convertir une série en estimation du 1RM. Il n’est pas établi ici qu’un modèle soit le plus précis pour chaque athlète.&lt;/p&gt;&lt;p&gt;&lt;a href=&quot;https://link.springer.com/article/10.1007/s40279-023-01937-7&quot; target=&quot;_blank&quot; rel=&quot;noopener&quot;&gt;Nuzzo, Pinto, Nosaka &amp; Steele · Sports Medicine (2024, publication en ligne le 4 octobre 2023)&lt;/a&gt; proposent une synthèse de la relation entre % du 1RM et répétitions maximales. Cette étude ne démontre pas que l’inversion de cette relation estime mieux le 1RM individuel que les autres modèles. Elle ne suffit donc pas à justifier son remplacement comme modèle par défaut dans cet outil.&lt;/p&gt;&lt;p&gt;1RM estimé = charge soulevée ÷ (% de la référence / 100). Chaque calcul utilise le modèle sélectionné. La moyenne Epley / Brzycki est utilisée uniquement si cette option est choisie. Aucune valeur manquante des tableaux n’est extrapolée. Projection de charge : 1RM de référence × pourcentage associé aux répétitions visées. Projection de répétitions : recherche des repères de charge voisins du modèle sélectionné. Une fourchette correspond à ces deux repères ; ce n’est pas un intervalle de confiance ni une prédiction individuelle validée.&lt;/p&gt;&lt;p&gt;&lt;a href=&quot;https://www.nsca.com/contentassets/61d813865e264c6e852cadfe247eae52/nsca_training_load_chart.pdf&quot; target=&quot;_blank&quot; rel=&quot;noopener&quot;&gt;NSCA · Training Load Chart&lt;/a&gt; : tableau officiel, 1 à 10 et 12 répétitions. Le tableau ne publie pas de valeur pour 11 répétitions.&lt;/p&gt;&lt;p&gt;&lt;a href=&quot;https://archive.t-nation.com/training/tip-one-heavy-rep/&quot; target=&quot;_blank&quot; rel=&quot;noopener&quot;&gt;Christian Thibaudeau · Tip: One. Heavy. Rep. (2019)&lt;/a&gt; : 3 RM = 94 %, 4 RM = 90 %, 5 RM = 87 %. Seules ces trois valeurs sont utilisées.&lt;/p&gt;&lt;p&gt;&lt;a href=&quot;https://www.scribd.com/document/909400788/Wt-Ice-Package-July-2021&quot; target=&quot;_blank&quot; rel=&quot;noopener&quot;&gt;Poliquin · tableau attribué à 1986, reproduit dans le guide BCRPA&lt;/a&gt; : fiche révisée en juillet 2011, page 13, copie accessible sur Scribd. Référence historique, sans vérification de la publication originale de 1986.&lt;/p&gt;&lt;p&gt;Références consultées le 2 octobre 2026. Aucun de ces tableaux ne garantit la précision individuelle ni une application spécifique aux mouvements olympiques.&lt;/p&gt;&lt;/details&gt;
 &lt;footer&gt;© 2026 Beglorious · Charles Glorieux&lt;/footer&gt;&lt;/div&gt;&lt;script&gt;
 &#x27;use strict&#x27;;
 const $=id=&gt;document.getElementById(id), fmt=n=&gt;new Intl.NumberFormat(&#x27;fr-BE&#x27;,{maximumFractionDigits:1}).format(n), time=s=&gt;{const t=Math.round(s*10),m=Math.floor(t/600);return m+&#x27;:&#x27;+((t%600)/10).toFixed(1).padStart(4,&#x27;0&#x27;)}, positive=n=&gt;Number.isFinite(n)&amp;&amp;n&gt;0;
@@ -787,19 +794,37 @@ models.brzycki=formulaModel(&#x27;Brzycki&#x27;,brzyckiFactor,(w,r)=&gt;formulaN
 models.average=formulaModel(&#x27;Moyenne Epley / Brzycki&#x27;,r=&gt;(epleyFactor(r)+brzyckiFactor(r))/2,(w,r)=&gt;&#x27;(&#x27;+formulaNumber(w*epleyFactor(r))+&#x27; + &#x27;+formulaNumber(w*brzyckiFactor(r))+&#x27;) / 2&#x27;);
 models.average.hint+=&#x27; Moyenne arithmétique des deux estimations, sans garantie de précision supérieure.&#x27;;
 models.strengthlevel={name:&#x27;Strength Level&#x27;,reps:repRange,percentages:[100,97,94,92,89,86,83,81,78,75],hint:&#x27;Tableau Strength Level : les 10 valeurs de la version précédente sont conservées. Ce tableau ne garantit pas une précision individuelle.&#x27;};
-function setModel(){const model=models[$(&#x27;model&#x27;).value],previous=+$(&#x27;reps&#x27;).value||5,nearest=model.reps.reduce((a,b)=&gt;Math.abs(b-previous)&lt;Math.abs(a-previous)?b:a);$(&#x27;reps&#x27;).innerHTML=model.reps.map(r=&gt;&#x27;&lt;option value=&quot;&#x27;+r+&#x27;&quot;&gt;&#x27;+r+&#x27;&lt;/option&gt;&#x27;).join(&#x27;&#x27;);$(&#x27;reps&#x27;).value=String(nearest);$(&#x27;modelHint&#x27;).textContent=model.hint;renderStrength();}
+function repProjection(model,rm,load){
+ if(load&gt;rm*(1+1e-10))return {error:&#x27;Charge supérieure au 1RM de référence.&#x27;};
+ if(Math.abs(load-rm)&lt;=rm*1e-10)return {low:1,high:1};
+ const points=model.reps.map((r,i)=&gt;({reps:r,load:rm*model.percentages[i]/100}));
+ for(const point of points)if(Math.abs(load-point.load)&lt;=rm*1e-10)return {low:point.reps,high:point.reps};
+ for(let i=1;i&lt;points.length;i++)if(load&lt;points[i-1].load&amp;&amp;load&gt;points[i].load)return {low:points[i-1].reps,high:points[i].reps};
+ return {error:&#x27;Hors de la plage du modèle : &#x27;+model.reps[0]+&#x27; à &#x27;+model.reps.at(-1)+&#x27; répétitions. Choisis une autre charge ou un autre modèle.&#x27;};
+}
+function renderProjection(model,rm,inc){
+ const targetReps=Number($(&#x27;projectionReps&#x27;).value),idx=model.reps.indexOf(targetReps),pct=targetReps===1?100:model.percentages[idx],value=rm*pct/100,rounded=Math.round(value/inc)*inc;
+ $(&#x27;projectionLoadResult&#x27;).innerHTML=positive(value)&amp;&amp;positive(rounded)?&#x27;&lt;strong class=&quot;big&quot;&gt;≈ &#x27;+fmt(rounded)+&#x27; kg&lt;/strong&gt;&lt;small&gt;pour &#x27;+targetReps+&#x27; répétition(s) max. · &#x27;+model.name+&#x27;&lt;br&gt;Avant arrondi : &#x27;+fmt(value)+&#x27; kg&lt;/small&gt;&#x27;:&#x27;&lt;p class=&quot;err&quot;&gt;Arrondi trop grand pour cette charge.&lt;/p&gt;&#x27;;
+ const raw=$(&#x27;projectionLoad&#x27;).value.trim(),load=Number(raw.replace(&#x27;,&#x27;,&#x27;.&#x27;));
+ if(!/^\d+(?:[.,]\d+)?$/.test(raw)||!positive(load)||load&gt;Number.MAX_SAFE_INTEGER){$(&#x27;projectionRepsResult&#x27;).innerHTML=&#x27;&lt;p class=&quot;err&quot;&gt;Entre une charge strictement positive.&lt;/p&gt;&#x27;;return;}
+ const r=repProjection(model,rm,load);
+ $(&#x27;projectionRepsResult&#x27;).innerHTML=r.error?&#x27;&lt;p class=&quot;err&quot;&gt;&#x27;+r.error+&#x27;&lt;/p&gt;&#x27;:&#x27;&lt;strong class=&quot;big&quot;&gt;≈ &#x27;+(r.low===r.high?r.low:r.low+&#x27;–&#x27;+r.high)+&#x27; répétition(s)&lt;/strong&gt;&lt;small&gt;à &#x27;+fmt(load)+&#x27; kg · &#x27;+model.name+&#x27;&lt;/small&gt;&#x27;;
+}
+function setModel(){const model=models[$(&#x27;model&#x27;).value],previous=+$(&#x27;reps&#x27;).value||5,nearest=model.reps.reduce((a,b)=&gt;Math.abs(b-previous)&lt;Math.abs(a-previous)?b:a);$(&#x27;reps&#x27;).innerHTML=model.reps.map(r=&gt;&#x27;&lt;option value=&quot;&#x27;+r+&#x27;&quot;&gt;&#x27;+r+&#x27;&lt;/option&gt;&#x27;).join(&#x27;&#x27;);$(&#x27;reps&#x27;).value=String(nearest);const target=+$(&#x27;projectionReps&#x27;).value||3,options=[...new Set([1,...model.reps])];$(&#x27;projectionReps&#x27;).innerHTML=options.map(r=&gt;&#x27;&lt;option value=&quot;&#x27;+r+&#x27;&quot;&gt;&#x27;+r+&#x27; répétition(s)&lt;/option&gt;&#x27;).join(&#x27;&#x27;);$(&#x27;projectionReps&#x27;).value=String(options.includes(target)?target:options[0]);$(&#x27;modelHint&#x27;).textContent=model.hint;renderStrength();}
 function renderStrength(){
+ const known=$(&#x27;rmSource&#x27;).value===&#x27;max&#x27;;$(&#x27;sourceRepsLabel&#x27;).hidden=known;$(&#x27;seriesAdvice&#x27;).hidden=known;$(&#x27;loadLabel&#x27;).textContent=known?&#x27;1RM connu (kg)&#x27;:&#x27;Charge soulevée (kg)&#x27;;$(&#x27;projectionLoadResult&#x27;).innerHTML=&#x27;&#x27;;$(&#x27;projectionRepsResult&#x27;).innerHTML=&#x27;&#x27;;
  const load=Number($(&#x27;load&#x27;).value.replace(&#x27;,&#x27;,&#x27;.&#x27;)),reps=+$(&#x27;reps&#x27;).value,inc=+$(&#x27;round&#x27;).value,p=Number($(&#x27;percent&#x27;).value.replace(&#x27;,&#x27;,&#x27;.&#x27;)),model=models[$(&#x27;model&#x27;).value],idx=model.reps.indexOf(reps);
  if(!/^\d+(?:[.,]\d+)?$/.test($(&#x27;load&#x27;).value.trim())||!/^\d+(?:[.,]\d+)?$/.test($(&#x27;percent&#x27;).value.trim())||!positive(load)||!positive(p)||p&lt;1||p&gt;150||!positive(inc)||idx&lt;0){$(&#x27;strengthResult&#x27;).innerHTML=&#x27;&lt;p class=&quot;err&quot;&gt;Charge positive et pourcentage entre 1 et 150 requis.&lt;/p&gt;&#x27;;return;}
- const sourcePercent=model.percentages[idx],rm=load/(sourcePercent/100),rounded=percent=&gt;Math.round(rm*percent/100/inc)*inc;
+ const sourcePercent=known?100:model.percentages[idx],rm=load/(sourcePercent/100),rounded=percent=&gt;Math.round(rm*percent/100/inc)*inc;
  if(!Number.isFinite(rm)||rm&gt;Number.MAX_SAFE_INTEGER||rm*1.5&gt;Number.MAX_SAFE_INTEGER){$(&#x27;strengthResult&#x27;).innerHTML=&#x27;&lt;p class=&quot;err&quot;&gt;Valeur trop grande pour conserver une précision numérique fiable.&lt;/p&gt;&#x27;;return;}
- const explanation=model.formula?(reps===1?&#x27;1 répétition : 1RM = charge renseignée.&#x27;:model.explain(load,reps)):(fmt(load)+&#x27; kg ÷ &#x27;+formulaNumber(sourcePercent/100)+&#x27; · &#x27;+reps+&#x27; répétition(s) = &#x27;+fmt(sourcePercent)+&#x27; % du 1RM&#x27;);
- $(&#x27;strengthResult&#x27;).innerHTML=&#x27;&lt;strong class=&quot;big&quot;&gt;&#x27;+fmt(rm)+&#x27; kg&lt;/strong&gt;&lt;small&gt;1RM estimé · &#x27;+model.name+&#x27;&lt;br&gt;&#x27;+explanation+&#x27;&lt;/small&gt;&lt;p&gt;&lt;b&gt;&#x27;+fmt(p)+&#x27; % : &#x27;+fmt(rounded(p))+&#x27; kg&lt;/b&gt;&lt;/p&gt;&lt;h3&gt;Charges par pourcentage&lt;/h3&gt;&lt;table&gt;&lt;thead&gt;&lt;tr&gt;&lt;th&gt;% du 1RM estimé&lt;/th&gt;&lt;th&gt;Charge arrondie&lt;/th&gt;&lt;/tr&gt;&lt;/thead&gt;&lt;tbody&gt;&#x27;+[40,50,60,65,70,75,80,85,90,95,100].map(p=&gt;&#x27;&lt;tr&gt;&lt;td&gt;&#x27;+p+&#x27; %&lt;/td&gt;&lt;td&gt;&#x27;+fmt(rounded(p))+&#x27; kg&lt;/td&gt;&lt;/tr&gt;&#x27;).join(&#x27;&#x27;)+&#x27;&lt;/tbody&gt;&lt;/table&gt;&lt;details&gt;&lt;summary&gt;Tableau RM · &#x27;+model.name+&#x27;&lt;/summary&gt;&lt;p&gt;&lt;small&gt;Charges théoriques pour le 1RM estimé ci-dessus. Chaque ligne utilise la référence sélectionnée. Pour les formules, les pourcentages dérivés sont arrondis à l’affichage.&lt;/small&gt;&lt;/p&gt;&lt;table&gt;&lt;thead&gt;&lt;tr&gt;&lt;th&gt;Répétitions max.&lt;/th&gt;&lt;th&gt;% du 1RM&lt;/th&gt;&lt;th&gt;Charge arrondie&lt;/th&gt;&lt;/tr&gt;&lt;/thead&gt;&lt;tbody&gt;&#x27;+model.reps.map((r,i)=&gt;&#x27;&lt;tr&gt;&lt;td&gt;&#x27;+r+&#x27; RM&lt;/td&gt;&lt;td&gt;&#x27;+fmt(model.percentages[i])+&#x27; %&lt;/td&gt;&lt;td&gt;&#x27;+fmt(rounded(model.percentages[i]))+&#x27; kg&lt;/td&gt;&lt;/tr&gt;&#x27;).join(&#x27;&#x27;)+&#x27;&lt;/tbody&gt;&lt;/table&gt;&lt;/details&gt;&#x27;;
+ const explanation=known?&#x27;1RM renseigné directement.&#x27;:model.formula?(reps===1?&#x27;1 répétition : 1RM = charge renseignée.&#x27;:model.explain(load,reps)):(fmt(load)+&#x27; kg ÷ &#x27;+formulaNumber(sourcePercent/100)+&#x27; · &#x27;+reps+&#x27; répétition(s) = &#x27;+fmt(sourcePercent)+&#x27; % du 1RM&#x27;);
+ $(&#x27;strengthResult&#x27;).innerHTML=&#x27;&lt;strong class=&quot;big&quot;&gt;&#x27;+fmt(rm)+&#x27; kg&lt;/strong&gt;&lt;small&gt;&#x27;+(known?&#x27;1RM connu&#x27;:&#x27;1RM estimé&#x27;)+&#x27; · &#x27;+model.name+&#x27;&lt;br&gt;&#x27;+explanation+&#x27;&lt;/small&gt;&lt;p&gt;&lt;b&gt;&#x27;+fmt(p)+&#x27; % : &#x27;+fmt(rounded(p))+&#x27; kg&lt;/b&gt;&lt;/p&gt;&lt;details&gt;&lt;summary&gt;Voir les charges par pourcentage&lt;/summary&gt;&lt;table&gt;&lt;thead&gt;&lt;tr&gt;&lt;th&gt;% du 1RM de référence&lt;/th&gt;&lt;th&gt;Charge arrondie&lt;/th&gt;&lt;/tr&gt;&lt;/thead&gt;&lt;tbody&gt;&#x27;+[40,50,60,65,70,75,80,85,90,95,100].map(p=&gt;&#x27;&lt;tr&gt;&lt;td&gt;&#x27;+p+&#x27; %&lt;/td&gt;&lt;td&gt;&#x27;+fmt(rounded(p))+&#x27; kg&lt;/td&gt;&lt;/tr&gt;&#x27;).join(&#x27;&#x27;)+&#x27;&lt;/tbody&gt;&lt;/table&gt;&lt;/details&gt;&lt;details&gt;&lt;summary&gt;Tableau RM · &#x27;+model.name+&#x27;&lt;/summary&gt;&lt;p&gt;&lt;small&gt;Charges théoriques pour le 1RM de référence ci-dessus. Chaque ligne utilise la référence sélectionnée. Pour les formules, les pourcentages dérivés sont arrondis à l’affichage.&lt;/small&gt;&lt;/p&gt;&lt;table&gt;&lt;thead&gt;&lt;tr&gt;&lt;th&gt;Répétitions max.&lt;/th&gt;&lt;th&gt;% du 1RM&lt;/th&gt;&lt;th&gt;Charge arrondie&lt;/th&gt;&lt;/tr&gt;&lt;/thead&gt;&lt;tbody&gt;&#x27;+model.reps.map((r,i)=&gt;&#x27;&lt;tr&gt;&lt;td&gt;&#x27;+r+&#x27; RM&lt;/td&gt;&lt;td&gt;&#x27;+fmt(model.percentages[i])+&#x27; %&lt;/td&gt;&lt;td&gt;&#x27;+fmt(rounded(model.percentages[i]))+&#x27; kg&lt;/td&gt;&lt;/tr&gt;&#x27;).join(&#x27;&#x27;)+&#x27;&lt;/tbody&gt;&lt;/table&gt;&lt;/details&gt;&#x27;;
+ renderProjection(model,rm,inc);
 }
-for(const id of [&#x27;load&#x27;,&#x27;reps&#x27;,&#x27;round&#x27;,&#x27;percent&#x27;])$(id).addEventListener(&#x27;input&#x27;,renderStrength);
+for(const id of [&#x27;load&#x27;,&#x27;reps&#x27;,&#x27;round&#x27;,&#x27;percent&#x27;,&#x27;rmSource&#x27;,&#x27;projectionReps&#x27;,&#x27;projectionLoad&#x27;])$(id).addEventListener(&#x27;input&#x27;,renderStrength);
 $(&#x27;model&#x27;).addEventListener(&#x27;change&#x27;,setModel);
 setModel();
-&lt;/script&gt;&lt;script&gt;for(const id of [&#x27;load&#x27;,&#x27;percent&#x27;])document.getElementById(id).addEventListener(&#x27;focus&#x27;,function(){this.select();});&lt;/script&gt;&lt;/html&gt;&lt;script&gt;
+&lt;/script&gt;&lt;script&gt;for(const id of [&#x27;load&#x27;,&#x27;percent&#x27;,&#x27;projectionLoad&#x27;])document.getElementById(id).addEventListener(&#x27;focus&#x27;,function(){this.select();});&lt;/script&gt;&lt;/html&gt;&lt;script&gt;
 (function(){
   var wrap=document.querySelector(&#x27;.wrap&#x27;);
   function reportHeight(){
@@ -1219,7 +1244,7 @@ function repereStr(a, vd){
   var hrStr = hrLow+"-"+hrHigh+"% FCmax";
   // Si l'utilisateur a renseigne sa vraie FC max, on ajoute les BPM cibles a cote du %.
   var hrMaxEl=document.getElementById("hrMax");
-  var hrMax = hrMaxEl ? parseInt(hrMaxEl.value,10) : NaN;
+  var hrMax = hrMaxEl ? courseNumber(hrMaxEl.value) : NaN;
   if(hrMax && hrMax>=120 && hrMax<=230){
     var bpmLow=Math.round(hrLow/100*hrMax), bpmHigh=Math.round(hrHigh/100*hrMax);
     hrStr += " (" + bpmLow+"-"+bpmHigh+" bpm)";
@@ -1238,7 +1263,7 @@ function timeForDist(vd,d){
 function parseTime(s){
  if(!s)return null;const raw=String(s).trim().replace(',','.');if(!/^\d+:\d+(?::\d+)?(?:\.\d+)?$/.test(raw))return null;
  const a=raw.split(':').map(Number);if(a[a.length-1]>=60||(a.length===3&&a[1]>=60))return null;
- const total=a.length===3?a[0]*3600+a[1]*60+a[2]:a[0]*60+a[1];return total>0?total:null;
+ const total=a.length===3?a[0]*3600+a[1]*60+a[2]:a[0]*60+a[1];return Number.isFinite(total)&&total>0&&total<=86400?total:null;
 }
 function fmtTime(sec){
   sec=Math.round(sec);
@@ -1278,7 +1303,7 @@ function renderAllureCards(unit){
     var repere = repereStr(a, lastVdot) + (a.rpeSuffix || "");
     return '<div class="pace-card">'+
       '<div class="pace-card-head">'+
-        '<span class="pace-name"><span class="pace-chevron">&#9656;</span><span class="zone-badge '+zoneClass(a.n)+'">'+a.n+'</span><span class="'+a.cls+'">'+a.tag+'</span></span>'+
+        '<span class="pace-name"><span class="pace-chevron">&#9656;</span><span class="zone-badge '+zoneClass(a.n)+'">'+courseZoneName(a.n)+'</span><span class="'+a.cls+'">'+a.tag+'</span></span>'+
         '<span class="pace-range">'+paceStr+'</span>'+
       '</div>'+
       '<div class="pace-sub"><b>'+repere+'</b> &mdash; '+a.use+'</div>'+
@@ -1343,15 +1368,12 @@ function wireDateMask(input){
 // dates deja sauvegardees par des utilisateurs avant ce changement).
 function parseDateFR(str){
   if(!str) return null;
-  var m=str.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
-  if(m){
-    var day=+m[1], month=+m[2], year=+m[3];
-    if(month<1||month>12||day<1||day>31) return null;
-    return new Date(year, month-1, day);
-  }
-  var m2=str.match(/^(\d{4})-(\d{2})-(\d{2})$/);
-  if(m2) return new Date(+m2[1], +m2[2]-1, +m2[3]);
-  return null;
+  const raw=String(str).trim(),fr=raw.match(/^(\d{2})\/(\d{2})\/(\d{4})$/),iso=raw.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if(!fr&&!iso)return null;
+  const day=Number(fr?fr[1]:iso[3]),month=Number(fr?fr[2]:iso[2]),year=Number(fr?fr[3]:iso[1]);
+  if(year<1900||year>2100)return null;
+  const date=new Date(year,month-1,day);
+  return date.getFullYear()===year&&date.getMonth()===month-1&&date.getDate()===day?date:null;
 }
 function toFRDisplay(str){
   var m=str && str.match(/^(\d{4})-(\d{2})-(\d{2})$/);
@@ -1424,11 +1446,30 @@ document.getElementById("hrMax").addEventListener("input", function(){ saveState
 
 // ============ Calcul ============
 document.getElementById("calcBtn").onclick=function(){
-  var rows=[].slice.call(perfsEl.children), perfs=[];
-  rows.forEach(function(r){
-    var d=+r.querySelector(".dist").value, t=parseTime(r.querySelector(".time").value), dt=r.querySelector(".date-input").value;
-    if(d&&t) perfs.push({d:d,t:t,date:parseDateFR(dt)});
+  clearCourseResults();
+  var rows=[].slice.call(perfsEl.children),perfs=[],issues=[];
+  const today=new Date();today.setHours(23,59,59,999);
+  rows.forEach(function(r,i){
+    const rawD=r.querySelector('.dist').value.trim(),rawT=r.querySelector('.time').value.trim(),rawDate=r.querySelector('.date-input').value.trim();
+    const timeParts=r.querySelectorAll('.ux-time input'),hasTime=[...timeParts].some(el=>el.value.trim()!=='');
+    if(!rawD&&!rawT&&!hasTime&&!rawDate)return;
+    // A prefilled distance alone is allowed when using only a Hyrox reference.
+    if(rawD&&!rawT&&!hasTime&&!rawDate&&rows.length===1&&document.getElementById('hxPace').value.trim()&&Number.isFinite(courseNumber(rawD))&&courseNumber(rawD)>=100&&courseNumber(rawD)<=100000)return;
+    const d=courseNumber(rawD),t=parseTime(rawT),date=parseDateFR(rawDate),pace=t/(d/1000);
+    if(!Number.isFinite(d)||d<100||d>100000)issues.push('Performance '+(i+1)+' : distance de 100 à 100 000 m.');
+    if(!t)issues.push('Performance '+(i+1)+' : renseigne un temps positif en minutes et secondes (0–59).');
+    if(Number.isFinite(d)&&t&&(pace<120||pace>1200))issues.push('Performance '+(i+1)+' : allure hors du domaine prévu (2:00 à 20:00/km). Vérifie les mètres et le temps.');
+    if(rawDate&&(!date||date>today))issues.push('Performance '+(i+1)+' : date inexistante ou future. Utilise jj/mm/aaaa.');
+    if(Number.isFinite(d)&&d>0&&t)perfs.push({d:d,t:t,date:date});
   });
+  const hxRaw=document.getElementById('hxPace').value.trim(),hxParts=document.getElementById('hxPace')._timeEntry?.box.querySelectorAll('input'),hxEntered=hxRaw||[...(hxParts||[])].some(el=>el.value.trim()!=='');
+  const hxValue=parseTime(hxRaw),hxDateRaw=document.getElementById('hxDate').value.trim(),hxDateValue=parseDateFR(hxDateRaw);
+  if(hxEntered&&(!hxValue||hxValue<120||hxValue>1200))issues.push('Hyrox : renseigne une allure de 2:00 à 20:00/km.');
+  if(hxDateRaw&&(!hxDateValue||hxDateValue>today))issues.push('Hyrox : date inexistante ou future.');
+  const hrRaw=document.getElementById('hrMax').value.trim(),hr=courseNumber(hrRaw);
+  if(hrRaw&&(!Number.isInteger(hr)||hr<120||hr>230))issues.push('FC max : saisis un entier entre 120 et 230 bpm, ou laisse vide.');
+  if(issues.length){courseError(issues.join(' '));return;}
+  document.getElementById('courseError').hidden=true;
 
   // Avertissement (non bloquant) : le modele physiologique est fiable pour des efforts d'environ
   // 3 min a 1h30. En dehors, on previent sans empecher le calcul. C'est la DUREE de l'effort qui
@@ -1501,6 +1542,7 @@ document.getElementById("calcBtn").onclick=function(){
     refPerf=recentPerfs.reduce(function(a,b){return b.d>a.d?b:a;});
   }
   var vdot=vdotFromPerf(refPerf.d, refPerf.t);
+  if(!Number.isFinite(vdot)||vdot<10||vdot>100){courseError('Cette performance sort du domaine du modèle (score 10–100). Vérifie les unités ; utilise le ressenti si le modèle ne correspond pas à ton niveau.');return;}
 
   // Déduction automatique du profil si >=2 performances a distances eloignees (rapport >=2x).
   // Le score VDOT sur distance courte vs longue revele le profil : un athlete force tient la vitesse
@@ -1557,6 +1599,7 @@ document.getElementById("calcBtn").onclick=function(){
     {n:"very hard", tag:"I / VO2max", cls:"pill", lo:paceFromVdot(vdot,1.00)-4, hi:paceFromVdot(vdot,1.00)+4, hrZone:{lo:95,hi:100}, use:"L'allure la plus dure. Fractions 3-5 min, ça pique. Récup active entre les fractions : au jog (rythme qui permet de récupérer sans marcher), jamais à l'arrêt complet."},
     {n:"fast", tag:"R / reps", cls:"pill", lo:paceFromVdot(vdot,FRAC.fast)-4, hi:paceFromVdot(vdot,FRAC.fast)+4, hrNotRel:true, use:"Très rapide, foulées et sensations propres (200-400 m). Récup complète au jog entre les fractions, doit ressortir léger."}
   ].concat(raceRows);
+  if(allures.some(a=>!Number.isFinite(a.lo)||!Number.isFinite(a.hi)||a.lo<=0||a.hi<=0)){courseError('Le modèle ne fournit pas des allures utilisables avec ces données. Vérifie les performances et le Hyrox.');return;}
   // Plus lent (haut) -> plus rapide (bas) : tri par allure moyenne de chaque fourchette, decroissant
   // en secondes/km (un nombre de secondes/km plus grand = plus lent).
   allures.sort(function(a,b){ return (b.lo+b.hi) - (a.lo+a.hi); });
@@ -1654,9 +1697,9 @@ function fmtSplitTime(sec){
 }
 function updateConverter(){
   var paceSec=parseTime(document.getElementById("convPace").value);
-  var dist=parseFloat(document.getElementById("convDist").value);
+  var dist=courseNumber(document.getElementById("convDist").value);
   var out=document.getElementById("convResult");
-  if(!paceSec || !dist || dist<=0){ out.textContent="--:--"; return; }
+  if(!validCoursePace(paceSec)||!Number.isFinite(dist)||dist<1||dist>100000){ out.textContent="Saisis une allure de 1:30 à 30:00/km et une distance de 1 à 100 000 m."; return; }
   out.textContent=fmtSplitTime(paceSec*(dist/1000));
 }
 document.getElementById("convPace").addEventListener("input", updateConverter);
@@ -1694,12 +1737,13 @@ document.getElementById("convZone").addEventListener("change", function(){
 document.getElementById("convPaceKmh").addEventListener("input", function(){
   var paceSec=parseTime(this.value);
   var kmhField=document.getElementById("convKmh");
-  kmhField.value = paceSec ? (3600/paceSec).toFixed(1) : "";
+  kmhField.value = validCoursePace(paceSec) ? (3600/paceSec).toFixed(1) : "";
 });
 document.getElementById("convKmh").addEventListener("input", function(){
-  var kmh=parseFloat(this.value);
+  var kmh=courseNumber(this.value);
   var paceField=document.getElementById("convPaceKmh");
-  paceField.value = (kmh && kmh>0) ? fmtPace(3600/kmh) : "";
+  paceField.value = (Number.isFinite(kmh)&&kmh>=2&&kmh<=40) ? fmtPace(3600/kmh) : "";
+  this.setAttribute("aria-invalid",String(this.value.trim()!==""&&!(Number.isFinite(kmh)&&kmh>=2&&kmh<=40)));
 });
 
 // ============ Export image (pense-bete) ============
@@ -1781,10 +1825,10 @@ document.getElementById('copy-tool-link').addEventListener('click',async functio
  box.innerHTML='<span class="ux-time-part"><span>Minutes</span><input id="'+prefix+'-minutes" type="text" inputmode="numeric" autocomplete="off" placeholder="0" aria-label="Minutes"></span><span class="ux-time-part"><span>Secondes</span><input id="'+prefix+'-seconds" type="text" inputmode="decimal" autocomplete="off" placeholder="00" aria-label="Secondes"></span>';
  input.after(box);const [min,sec]=box.querySelectorAll('input');let editing=false;
  function sync(){const enabled=active();input.classList.toggle('ux-time-source',enabled);box.hidden=!enabled;if(!enabled||editing)return;
-  const raw=input.value.trim();let total;if(secondsStorage)total=/^\d+(?:[.,]\d+)?$/.test(raw)?Number(raw.replace(',','.')):NaN;else{const p=raw.replace(',','.').split(':');total=p.length===2?+p[0]*60+(+p[1]):p.length===3?+p[0]*3600+(+p[1])*60+(+p[2]):NaN;}
+  const raw=input.value.trim();let total;if(secondsStorage)total=/^\d+(?:[.,]\d+)?$/.test(raw)?Number(raw.replace(',','.')):NaN;else{total=parseTime(raw);if(total===null)total=NaN;}
   if(raw&&Number.isFinite(total)&&total>=0){min.value=String(Math.floor(total/60));sec.value=String(Math.round(total%60*100)/100).padStart(2,'0').replace('.',',');}else{min.value='';sec.value='';}
  }
- function write(){editing=true;const m=min.value.trim(),s=sec.value.trim().replace(',','.');const valid=(m===''||/^\d+$/.test(m))&&(s===''||/^\d+(?:\.\d+)?$/.test(s))&&Number(s)<60;
+ function write(){editing=true;const m=min.value.trim(),s=sec.value.trim().replace(',','.');const valid=(m===''||/^\d+$/.test(m))&&(s===''||/^\d+(?:\.\d+)?$/.test(s))&&Number(s)<60&&Number.isFinite(Number(m||0)*60+Number(s||0))&&Number(m||0)*60+Number(s||0)<=86400;
   const ok=valid&&(m!==''||s!=='');const total=Number(m||0)*60+Number(s||0);
   input.value=ok?(secondsStorage?String(total):(m||'0')+':'+(s||'00')):'';
   min.setAttribute('aria-invalid',String(!valid));sec.setAttribute('aria-invalid',String(!valid));input.dispatchEvent(new Event('input',{bubbles:true}));editing=false;
@@ -1808,5 +1852,37 @@ const hxCaption=document.createElement('span');hxCaption.textContent='Allure moy
 document.getElementById('convZone').addEventListener('change',()=>document.getElementById('convPace')._timeEntry.sync());
 document.getElementById('convKmh').addEventListener('input',()=>document.getElementById('convPaceKmh')._timeEntry.sync());
 for(const el of document.querySelectorAll('input:not(.ux-time-source)')){if(el.type==='number')el.inputMode=el.step==='0.1'?'decimal':'numeric';if(el.type!=='date')el.addEventListener('focus',function(){this.select();});}
-</script></body>
+</script>
+<style>
+.audience-switch{display:flex;gap:8px;margin:14px 0 4px}.audience-switch button{flex:1;padding:10px;border:1px solid var(--line);border-radius:10px;background:#FCF6EE;color:#495563;font:inherit;font-weight:700}.audience-switch button[aria-pressed=true]{background:#495563;color:#FCF6EE}
+body[data-audience=athlete] .pace-name .pill,body[data-audience=athlete] .pace-name .meas,body[data-audience=athlete] .coach-reference{display:none}
+body[data-audience=athlete] .coach-optional>summary{cursor:pointer;font-weight:700;padding:12px 0}.coach-optional>summary{cursor:pointer}body[data-audience=coach] .coach-optional>summary{display:none}
+@media(max-width:520px){.pace-card-head{flex-wrap:wrap}.pace-name{white-space:normal;flex-wrap:wrap;min-width:0}.pace-range{margin-left:auto}.zone-badge{overflow-wrap:anywhere}.pace-sub{overflow-wrap:anywhere}}
+</style>
+<script>
+var audienceMode='athlete';
+function courseNumber(raw){const s=String(raw).trim().replace(',','.');return /^\d+(?:\.\d+)?$/.test(s)?Number(s):NaN;}
+function validCoursePace(s){return Number.isFinite(s)&&s>=90&&s<=1800;}
+function courseZoneName(name){if(audienceMode==='coach')return name;return ({easy:'Facile',tempo:'Soutenu',hard:'Seuil', 'very hard':'Intense',fast:'Rapide','race pace Hyrox':'Course Hyrox'})[name]||name;}
+function clearCourseResults(){
+ lastAllures=null;lastVdot=null;lastRefInfo=null;
+ document.getElementById('out').classList.add('hidden');document.getElementById('allures').innerHTML='';document.getElementById('equiv').innerHTML='';
+ document.getElementById('ref5k').textContent='';if(document.getElementById('convZone').value){document.getElementById('convPace').value='';document.getElementById('convPace')._timeEntry?.sync();updateConverter();}document.getElementById('convZone').innerHTML='';document.getElementById('convZone').style.display='none';
+ const empty=document.getElementById('equivEmpty');if(empty)empty.style.display='';
+ document.getElementById('summaryBar').classList.add('hidden');document.getElementById('inputZone').classList.remove('hidden');
+ document.getElementById('durationWarn').style.display='none';document.getElementById('dateError').style.display='none';document.getElementById('noData').classList.add('hidden');
+}
+function courseError(message){clearCourseResults();const el=document.getElementById('courseError');el.textContent=message;el.hidden=false;}
+document.getElementById('ref5k').parentElement.classList.add('coach-reference');
+// Optional fields stay available to athletes; coach mode expands them.
+for(const id of ['hxPace','hybridProfile']){const card=document.getElementById(id).closest('.card'),title=card.previousElementSibling;const box=document.createElement('details');box.className='coach-optional';const summary=document.createElement('summary');summary.textContent=id==='hxPace'?'Ajouter mon Hyrox (facultatif)':'Mon profil et ma FC max';title.before(box);box.append(summary,title,card);}
+function setAudience(mode){audienceMode=mode;document.body.dataset.audience=mode;document.querySelectorAll('[data-audience]').forEach(b=>{if(b.tagName==='BUTTON')b.setAttribute('aria-pressed',String(b.dataset.audience===mode));});document.querySelectorAll('.coach-optional').forEach(d=>d.open=mode==='coach');document.getElementById('audienceHint').textContent=mode==='coach'?'Vue coach : profils, repères et méthodes détaillés.':'Vue simple : tes allures et tes cibles. Les détails restent accessibles.';if(lastAllures)renderAllureCards(currentUnit);for(const f of document.querySelectorAll('iframe')){const body=f.contentDocument?.body;if(body)body.dataset.audience=mode;}try{localStorage.setItem('beglorious_audience',mode);}catch{}}
+for(const b of document.querySelectorAll('button[data-audience]'))b.addEventListener('click',()=>setAudience(b.dataset.audience));
+for(const f of document.querySelectorAll('iframe'))f.addEventListener('load',()=>setAudience(audienceMode));
+try{if(localStorage.getItem('beglorious_audience')==='coach')audienceMode='coach';}catch{}setAudience(audienceMode);
+// Editing invalidates derived course results immediately, including the tools menu.
+for(const id of ['perfs','hxPace','hxDate','hybridProfile','hrMax']){const el=document.getElementById(id);if(el)el.addEventListener('input',()=>{if(lastAllures)clearCourseResults();});}
+document.getElementById('addBtn').addEventListener('click',()=>{if(lastAllures)clearCourseResults();});document.getElementById('perfs').addEventListener('click',event=>{if(event.target.closest('.rm')&&lastAllures)clearCourseResults();});
+</script>
+</body>
 </html>
